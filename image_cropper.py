@@ -18,7 +18,6 @@ if not os.path.exists(cropped_folder_path):
 for folder in os.listdir('./GTV-Database-UPC/'): #loop por todas las carpetas de imágenes
     folder_path = f'./GTV-Database-UPC/{folder}/'
     imgs = load_images_from_folder(folder_path) #obtener todas las imágenes de una carpeta
-    os.mkdir(f'{cropped_folder_path}{folder}')
     print(f'Cropping folder {folder}', end='')
     cnt = 0
 
@@ -58,7 +57,7 @@ for folder in os.listdir('./GTV-Database-UPC/'): #loop por todas las carpetas de
             
         
         cnt += 1
-        image_path = f'{cropped_folder_path}{folder}/{folder}_{cnt:03}.png'
+        image_path = f'{cropped_folder_path}{folder}_{cnt:03}.png'
         if profile:
             cv2.imwrite(image_path, detected_profile_face)
         else: cv2.imwrite(image_path, detected_face) 
