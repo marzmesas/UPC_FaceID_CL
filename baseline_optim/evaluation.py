@@ -12,26 +12,35 @@ from sklearn.cluster import DBSCAN
 from sklearn.decomposition import PCA
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
 import seaborn as sns
+from sklearn.neighbors import NearestNeighbors
+import cv2
+
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 #logdir = os.path.join("logs", datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
 #writer = SummaryWriter(log_dir=logdir)
 
-def graph_embeddings(modelq, config, config_fixed, writer):
-
-    #logdir = os.path.join("logs", datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
-    #writer = SummaryWriter(log_dir=logdir)
-
+def compute_embeddings(modelq, config, config_fixed, writer=None):
     modelq.eval()
     transform = transforms.Compose([transforms.ToTensor(), transforms.CenterCrop((240, 240))])
     dataset_embedding = CustomDataset(config_fixed["image_path"],transform)
     data_loader_embedding = DataLoader(dataset=dataset_embedding,batch_size=config["batch_size"],shuffle=True)
     
-    if len(nn.Sequential(*list(modelq.fc.children()))) == 5:
-        modelq.fc = nn.Sequential(*list(modelq.fc.children())[:-3])
+    #if len(nn.Sequential(*list(modelq.fc.children()))) == 5:
+    #    modelq.fc = nn.Sequential(*list(modelq.fc.children())[:-3])
     
     latents,labels, images=log_embeddings(modelq, data_loader_embedding, writer)
+    if not os.path.exists('./saved_models/latents.pt'):
+        torch.save(latents, './saved_models/latents.pt')
+
+    return latents, labels, images
+
+def graph_embeddings(latents, labels):
+
+    #logdir = os.path.join("logs", datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
+    #writer = SummaryWriter(log_dir=logdir)
 
     #UMAP
     UMAP_fig=plt.figure(1, figsize=(8, 6))
@@ -83,4 +92,32 @@ def graph_embeddings(modelq, config, config_fixed, writer):
     ax.w_zaxis.set_ticklabels([])
     plt.pause(0)
 
+    return latents
+
+def prediction(image, modelq, latents, num_neighboors):
     
+    #scaler = StandardScaler()
+    #latents = scaler.fit_transform(latents.numpy())
+    
+    #pca=PCA(n_components=3)
+    #reducer = umap.UMAP()
+    #latents= reducer.fit_transform(latents)
+
+    neigh = NearestNeighbors(n_neighbors=num_neighboors)
+    neigh.fit(latents)
+    
+    #if len(nn.Sequential(*list(modelq.fc.children()))) == 5:
+    #    modelq.fc = nn.Sequential(*list(modelq.fc.children())[:-3])
+
+    transform = transforms.Compose([transforms.ToTensor(), transforms.CenterCrop((240, 240))])
+    modelq.to(device)
+    modelq.eval()
+    tensor_sample = transform(image).to(device)
+    tensor_sample = tensor_sample.unsqueeze(0)
+    latent_sample = modelq(tensor_sample)
+    latent_sample = latent_sample.to('cpu').detach().numpy()
+    #latent_sample = scaler.transform(latent_sample)
+    #dist, idx = neigh.kneighbors(reducer.transform(latent_sample))
+    dist, idx = neigh.kneighbors(latent_sample)
+
+    return dist, idx

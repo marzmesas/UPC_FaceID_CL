@@ -22,5 +22,5 @@ def log_embeddings(model, data_loader, writer):
   images = torch.cat(list_images)
   labels = torch.cat(list_labels)
   #Guardamos los embeddings para el tensorboard y su representación con PCA,T-SNE
-  writer.add_embedding(latent,metadata=labels,label_img=images)
+  #writer.add_embedding(latent,metadata=labels,label_img=images)
   return latent,labels,images
