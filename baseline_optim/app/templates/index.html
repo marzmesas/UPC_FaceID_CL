@@ -1,0 +1,20 @@
+<body>
+<div class="container">
+    <div class="row">
+        <div class="col-lg-8  offset-lg-2">
+
+			
+            <h2 class="mt-5">FACE ID</h2>
+			<form method="post" action="{{ url_for('tasks') }}">
+			<input type="submit" value="Stop/Start" name="stop" />
+			<input type="submit" value="Login" name="click" />
+            <input type="submit" value="Capture" name="click"/>
+            <input type="submit" value="Sign up" name="click"/>
+			</form>
+            <img src="{{ url_for('video_feed') }}" height="80%">
+			<ol style="font-family:courier;">
+			
+        </div>
+    </div>
+</div>
+</body>
