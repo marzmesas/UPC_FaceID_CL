@@ -8,7 +8,7 @@ from logging_moco import log_embeddings
 from torchvision import datasets, transforms
 from torch.utils.tensorboard import SummaryWriter
 import umap
-from sklearn.cluster import DBSCAN
+from sklearn.cluster import OPTICS, KMeans
 from sklearn.decomposition import PCA
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
@@ -16,6 +16,8 @@ from sklearn.preprocessing import StandardScaler, MinMaxScaler
 import seaborn as sns
 from sklearn.neighbors import NearestNeighbors
 import cv2
+import numpy as np
+from scipy.spatial import distance
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -28,12 +30,10 @@ def compute_embeddings(modelq, config, config_fixed, writer=None):
     dataset_embedding = CustomDataset(config_fixed["image_path"],transform)
     data_loader_embedding = DataLoader(dataset=dataset_embedding,batch_size=config["batch_size"],shuffle=True)
     
-    #if len(nn.Sequential(*list(modelq.fc.children()))) == 5:
-    #    modelq.fc = nn.Sequential(*list(modelq.fc.children())[:-3])
-    
+    #Calculamos los embeddings
+    # Sacamos tambień los labels y las imágenes para graficar
     latents,labels, images=log_embeddings(modelq, data_loader_embedding, writer)
-    if not os.path.exists('./saved_models/latents.pt'):
-        torch.save(latents, './saved_models/latents.pt')
+    torch.save(latents, './saved_models/latents.pt')
 
     return latents, labels, images
 
@@ -42,12 +42,14 @@ def graph_embeddings(latents, labels):
     #logdir = os.path.join("logs", datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
     #writer = SummaryWriter(log_dir=logdir)
 
+    # Sacamos gráficas UMAP y PCA. Utilizamos los labels para pintar de distintos colores y ver
+    # que estamos haciendo bien los clústers
+
     #UMAP
     UMAP_fig=plt.figure(1, figsize=(8, 6))
     reducer = umap.UMAP()
     standardized_data = StandardScaler().fit_transform(latents.numpy())
     embedding = reducer.fit_transform(standardized_data)
-    embedding.shape
     custom_palette = sns.color_palette("hls", 44)
     plt.scatter(
         embedding[:, 0],
@@ -55,11 +57,9 @@ def graph_embeddings(latents, labels):
         c=[custom_palette[x] for x in labels.tolist()])
     plt.gca().set_aspect('equal', 'datalim')
 
-    # Compute DBSCAN UMAP
-    db = DBSCAN(eps=0.3, min_samples=3).fit(embedding)
-    labels_ = db.labels_
-    n_clusters_ = len(set(labels_)) - (1 if -1 in labels_ else 0)
-    #print("Estimated number of clusters UMAP: %d" % n_clusters_)
+    # Compute OPTICS
+    clustering = OPTICS(min_samples=20).fit(embedding)
+    n_clusters_=len(set(clustering.labels_))
     plt.title('UMAP projection of the latents dataset - Estimated number of clusters: %d' % n_clusters_)
     plt.show()
 
@@ -78,10 +78,9 @@ def graph_embeddings(latents, labels):
         edgecolor="k",
         s=40,
     )
-    # Compute DBSCAN PCA
-    db = DBSCAN(eps=0.5, min_samples=3).fit(X_reduced)
-    labels_ = db.labels_
-    n_clusters_ = len(set(labels_)) - (1 if -1 in labels_ else 0)
+    # Compute OPTICS
+    clustering = OPTICS(min_samples=20).fit(X_reduced)
+    n_clusters_=len(set(clustering.labels_))
     print("Estimated number of clusters PCA: %d" % n_clusters_)
     ax.set_title('First three PCA directions - Estimated number of clusters PCA: %d' % n_clusters_)
     ax.set_xlabel("1st eigenvector")
@@ -92,23 +91,8 @@ def graph_embeddings(latents, labels):
     ax.w_zaxis.set_ticklabels([])
     plt.pause(0)
 
-    return latents
-
-def prediction(image, modelq, latents, num_neighboors):
-    
-    #scaler = StandardScaler()
-    #latents = scaler.fit_transform(latents.numpy())
-    
-    #pca=PCA(n_components=3)
-    #reducer = umap.UMAP()
-    #latents= reducer.fit_transform(latents)
-
-    neigh = NearestNeighbors(n_neighbors=num_neighboors)
-    neigh.fit(latents)
-    
-    #if len(nn.Sequential(*list(modelq.fc.children()))) == 5:
-    #    modelq.fc = nn.Sequential(*list(modelq.fc.children())[:-3])
-
+def prediction(image, modelq, latents, num_neighboors=1):
+        
     transform = transforms.Compose([transforms.ToTensor(), transforms.CenterCrop((240, 240))])
     modelq.to(device)
     modelq.eval()
@@ -116,8 +100,31 @@ def prediction(image, modelq, latents, num_neighboors):
     tensor_sample = tensor_sample.unsqueeze(0)
     latent_sample = modelq(tensor_sample)
     latent_sample = latent_sample.to('cpu').detach().numpy()
-    #latent_sample = scaler.transform(latent_sample)
-    #dist, idx = neigh.kneighbors(reducer.transform(latent_sample))
-    dist, idx = neigh.kneighbors(latent_sample)
+    
+    # Algoritmo que encuentra los k-vecinos más próximos y devuelve la distancia a ellos (no a los centroides)
+    # Si utilizamos un Kmeans debemos indicar el número de clústers y en principio es una cosa que no sabemos
+    
+        #neigh = NearestNeighbors(n_neighbors=num_neighboors)
+        #neigh.fit(latents)
+        #dist, idx = neigh.kneighbors(latent_sample)
+        #dist = dist[0]
+        #idx = idx[0]
 
-    return dist, idx
+    # Utilizamos OPTICS para sacar el número de clusters para utilizar posteriormente con el kmeans
+    # Utilizamos OPTICS frente al DBSCAN porque sólo hay el parámetro min_samples
+    clustering = OPTICS(min_samples=20).fit(latents)
+    n_clusters_=len(set(clustering.labels_))
+    kmeans = KMeans(n_clusters=n_clusters_, random_state=0).fit(latents)
+    # Predecimos el cluster más próximo
+    label_closest_cluster = kmeans.predict(latent_sample.astype(float))
+    label_closest_cluster=label_closest_cluster[0]
+    # Sacamos los índices de los elementos que forman el cluster
+    idx = np.where(kmeans.labels_==label_closest_cluster)
+    # Tomamos num_neighboors de los elementos que forman el cluster
+    idx=idx[0][0:num_neighboors]
+    # Recuperamos los centroids de los clusters
+    centroids = kmeans.cluster_centers_
+    # Calculamos la distancia entre la muestra y el centroid más cercano
+    distance_from_closest_centroid = distance.euclidean(centroids[label_closest_cluster], latent_sample)
+
+    return distance_from_closest_centroid, idx

@@ -40,7 +40,9 @@ optim=False
 # Variable para testear predicciones
 testing = True
 
+# Conjunto de parámetros fijados
 config_fixed={
+          # He puesto el path en la configuración para pasar rápidamente del supervised al unsupervised
           "image_path":'/home/carles/faceid/UPC_FaceID_CL//UPC_FaceID_CL/GTV-Database-UPC',
           "tau": 0.05,
           #"batch_size": 16,
@@ -56,6 +58,7 @@ modelq = base_model(pretrained=True).to(device)
 modelk = copy.deepcopy(modelq)
 
 # Entrenamos el modelo
+# Si no optimizamos fijamos el conjunto de parámetros que utilizaremos más adelante para optimizar
 if not optim:
   config={}
   config['lr']= 0.001
@@ -76,45 +79,42 @@ if not optim:
     #load model state_dict
     trained_modelq = base_model(pretrained=False)
     trained_modelq.load_state_dict(torch.load(os.path.join(path_model, 'modelq.pt'),map_location=torch.device('cpu')))
-
-  #if os.path.exists('./saved_models/latents.pt'):
-  #  latents = torch.load('./saved_models/latents.pt')
-  #else:
-    
-  latents, labels, images = compute_embeddings(trained_modelq, config, config_fixed)
-  #graph_embeddings(latents, labels)  
   
-  #path_image_test = '/home/carles/faceid/UPC_FaceID_CL/UPC_FaceID_CL/GTV-Database-UPC/ID22/ID22_001.bmp'
-  path_image_test = '/home/carles/faceid/UPC_FaceID_CL/UPC_FaceID_CL/GTV-Database-UPC/ID34/ID34_001.bmp'
-  #path_image_test = '/home/carles/faceid/prova1.jpg'
-  #path_image_test = '/home/carles/faceid/carles_musoll.jpeg'
-  image_test = cv2.imread(path_image_test)
-  image_test = cv2.cvtColor(image_test, cv2.COLOR_BGR2RGB)
-  num_neighboors=5
-  dists, idxs = prediction(image_test, trained_modelq, latents, num_neighboors)
-  print(f'Distance: {dists}, Nearest Element {idxs}')
-
   if testing:
-    #latents, labels, images = compute_embeddings(trained_modelq, config, config_fixed)
+    # Cogemos una imagen del dataset
+    path_image_test = '/home/carles/faceid/UPC_FaceID_CL/UPC_FaceID_CL/GTV-Database-UPC/ID39/ID39_001.bmp'
+    # Cogemos una imagen que no está en el dataset
+    #path_image_test = '/home/carles/faceid/carles_musoll.jpeg'
+
+    # Recuperamos los embeddings y las imágenes para testear la predicción
+    latents, labels, images = compute_embeddings(trained_modelq, config, config_fixed)
     #graph_embeddings(latents, labels)
+
+    image_test = cv2.imread(path_image_test)
+    image_test = cv2.cvtColor(image_test, cv2.COLOR_BGR2RGB)
+    num_neighboors=5
+    dist, idxs = prediction(image_test, trained_modelq, latents)
+    print(f'Distance from closest centroid: {dist}, Image from cluster {idxs}')
+    
+    # Graficamos las k imágenes del dataset que estan más próximas de la imagen de test
     image_stack = cv2.resize(image_test, (240,240))
     image_stack = cv2.rectangle(image_stack, (0,0), (240,240), (255,0,0), 10)
     image_stack = cv2.putText(image_stack, text='INPUT IMAGE', org=(10, 40), fontFace=cv2.FONT_HERSHEY_TRIPLEX, fontScale=1, color=(255, 0, 0),thickness=1)
-    dists = dists.tolist()[0]
-    for k, idx in enumerate(idxs.tolist()[0]):
+    
+    for k, idx in enumerate(idxs):
       closer_image = images[idx]
       closer_image = closer_image.squeeze(0)
       closer_image = torch.permute(closer_image, (1,2,0))
       closer_image = closer_image.numpy()
       closer_image = np.ascontiguousarray((closer_image*255), dtype=np.uint8)
-      closer_image = cv2.putText(closer_image, text=f'Neigh K={k+1} dist {round(dists[k], 4)}', org=(10, 20), fontFace=cv2.FONT_HERSHEY_TRIPLEX, fontScale=0.5, color=(0, 255, 0),thickness=1)
+      closer_image = cv2.putText(closer_image, text=f'Dist from centroid {round(dist, 4)}', org=(10, 20), fontFace=cv2.FONT_HERSHEY_TRIPLEX, fontScale=0.4, color=(0, 255, 0),thickness=1)
       image_stack = np.hstack((image_stack, closer_image))
       
     plt.imshow(image_stack)
     plt.show()
 
 else:
-  # Parametros a optimizar
+  # Optimizacion ASHA de la librería tune.ray (la dejo por si la necesitamos más adelante)
   '''
   config={
           "lr": tune.uniform(1e-4, 1e-1),
@@ -156,6 +156,8 @@ else:
   config['momentum']=best_trial.config['momentum']
   config['epochs']=best_trial.config['epochs']
   '''
+
+  # Optimizacion con la librería W&B (para más adelante)
   metric = {
     'name': 'loss',
     'goal': 'minimize'   
@@ -193,10 +195,6 @@ else:
   config=None
   wandb.agent(sweep_id, partial(train_model, config, config_fixed, modelq, modelk), count=count)
 
-  #trained_modelq, trained_modelk=train_model(config, config_fixed, modelq, modelk, writer, False)
-
-  # Guardamos modelos optimizados
+  # Una vez hecha la optimizacion, deberemos guardar los modelos optimizados 
   #torch.save(modelq.state_dict(), os.path.join(path_model, 'modelq_opt.pt'))
   #torch.save(modelk.state_dict(), os.path.join(path_model, 'modelk_opt.pt'))
-
-  #graph_embeddings(trained_modelq, config, config_fixed, writer) 
