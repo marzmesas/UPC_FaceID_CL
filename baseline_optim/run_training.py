@@ -4,7 +4,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 import datetime
 from statistics import mean
 
-from dataset import CustomDataset
+from dataset import CustomDataset_Supervised, CustomDataset_Unsupervised
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader, Dataset
 import torch.optim as optim
@@ -75,10 +75,10 @@ def train_model(config, config_fixed, modelq, modelk):
 
         optimizer = optim.SGD(modelq.parameters(), lr=config["lr"], momentum=config_fixed["momentum_optimizer"], weight_decay=config_fixed["weight_decay"])
     
-        transform = transforms.Compose([transforms.ToTensor(), transforms.CenterCrop((240, 240))])
-        dataset_queue = CustomDataset(config_fixed['image_path'],transform)
+        transform = transforms.Compose([transforms.ToTensor(), transforms.CenterCrop((120, 120))])
+        dataset_queue = CustomDataset_Unsupervised(config_fixed['image_path'], transform)
         data_loader_queue = DataLoader(dataset=dataset_queue,batch_size=config["batch_size"],shuffle=True)
-        dataset = CustomDataset(config_fixed['image_path'],transform)
+        dataset = CustomDataset_Unsupervised(config_fixed['image_path'], transform)
         data_loader = DataLoader(dataset=dataset,batch_size=config["batch_size"],shuffle=True)
 
         num_epochs = 0

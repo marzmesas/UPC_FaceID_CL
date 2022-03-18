@@ -34,16 +34,16 @@ torch.cuda.empty_cache()
 
 path_model='./saved_models'
 # Variable para entrenar o para evaluar
-training=False
+training=True
 # Variable para optimizar
 optim=False
 # Variable para testear predicciones
-testing = True
+testing = False
 
 # Conjunto de parámetros fijados
 config_fixed={
           # He puesto el path en la configuración para pasar rápidamente del supervised al unsupervised
-          "image_path":'/home/carles/faceid/UPC_FaceID_CL//UPC_FaceID_CL/GTV-Database-UPC',
+          "image_path":'./Cropped-IMGS',
           "tau": 0.05,
           #"batch_size": 16,
           #"lr": 0.001,
@@ -54,7 +54,7 @@ config_fixed={
       }
 
 # Definimos los modelos
-modelq = base_model(pretrained=True).to(device)
+modelq = base_model(pretrained=False).to(device)
 modelk = copy.deepcopy(modelq)
 
 # Entrenamos el modelo
@@ -64,7 +64,6 @@ if not optim:
   config['lr']= 0.001
   config['batch_size']=16
   config['momentum']=0.999
-  config['epochs']=200
   config['K']=2000
   
   if training:
@@ -82,7 +81,7 @@ if not optim:
   
   if testing:
     # Cogemos una imagen del dataset
-    path_image_test = '/home/carles/faceid/UPC_FaceID_CL/UPC_FaceID_CL/GTV-Database-UPC/ID39/ID39_001.bmp'
+    path_image_test = './Cropped-IMGS/ID39_001.bmp'
     # Cogemos una imagen que no está en el dataset
     #path_image_test = '/home/carles/faceid/carles_musoll.jpeg'
 
@@ -92,13 +91,12 @@ if not optim:
 
     image_test = cv2.imread(path_image_test)
     image_test = cv2.cvtColor(image_test, cv2.COLOR_BGR2RGB)
-    num_neighboors=5
-    dist, idxs = prediction(image_test, trained_modelq, latents)
+    dist, idxs = prediction(image_test, trained_modelq, latents, num_neighboors=5)
     print(f'Distance from closest centroid: {dist}, Image from cluster {idxs}')
     
     # Graficamos las k imágenes del dataset que estan más próximas de la imagen de test
-    image_stack = cv2.resize(image_test, (240,240))
-    image_stack = cv2.rectangle(image_stack, (0,0), (240,240), (255,0,0), 10)
+    image_stack = cv2.resize(image_test, (120,120))
+    image_stack = cv2.rectangle(image_stack, (0,0), (120,120), (255,0,0), 10)
     image_stack = cv2.putText(image_stack, text='INPUT IMAGE', org=(10, 40), fontFace=cv2.FONT_HERSHEY_TRIPLEX, fontScale=1, color=(255, 0, 0),thickness=1)
     
     for k, idx in enumerate(idxs):
@@ -107,7 +105,7 @@ if not optim:
       closer_image = torch.permute(closer_image, (1,2,0))
       closer_image = closer_image.numpy()
       closer_image = np.ascontiguousarray((closer_image*255), dtype=np.uint8)
-      closer_image = cv2.putText(closer_image, text=f'Dist from centroid {round(dist, 4)}', org=(10, 20), fontFace=cv2.FONT_HERSHEY_TRIPLEX, fontScale=0.4, color=(0, 255, 0),thickness=1)
+      closer_image = cv2.putText(closer_image, text=f'Dist {round(dist, 4)}', org=(10, 20), fontFace=cv2.FONT_HERSHEY_TRIPLEX, fontScale=0.3, color=(0, 255, 0),thickness=1)
       image_stack = np.hstack((image_stack, closer_image))
       
     plt.imshow(image_stack)

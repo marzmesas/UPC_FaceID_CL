@@ -3,7 +3,7 @@ import datetime
 import torch.nn as nn
 import torch
 from torch.utils.data import DataLoader, Dataset
-from dataset import CustomDataset
+from dataset import CustomDataset_Supervised, CustomDataset_Unsupervised
 from logging_moco import log_embeddings
 from torchvision import datasets, transforms
 from torch.utils.tensorboard import SummaryWriter
@@ -26,8 +26,9 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 def compute_embeddings(modelq, config, config_fixed, writer=None):
     modelq.eval()
-    transform = transforms.Compose([transforms.ToTensor(), transforms.CenterCrop((240, 240))])
-    dataset_embedding = CustomDataset(config_fixed["image_path"],transform)
+    transform = transforms.Compose([transforms.ToTensor(), transforms.CenterCrop((120, 120))])
+    #dataset_embedding = CustomDataset_Supervised(config_fixed["image_path"],transform)
+    dataset_embedding = CustomDataset_Unsupervised(config_fixed["image_path"], transform=transform)
     data_loader_embedding = DataLoader(dataset=dataset_embedding,batch_size=config["batch_size"],shuffle=True)
     
     #Calculamos los embeddings
