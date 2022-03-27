@@ -24,16 +24,23 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 #logdir = os.path.join("logs", datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
 #writer = SummaryWriter(log_dir=logdir)
 
-def compute_embeddings(modelq, config, config_fixed, writer=None):
+def compute_embeddings(modelq, config, config_fixed, writer):
+    
     modelq.eval()
-    transform = transforms.Compose([transforms.ToTensor(), transforms.CenterCrop((120, 120))])
-    #dataset_embedding = CustomDataset_Supervised(config_fixed["image_path"],transform)
-    dataset_embedding = CustomDataset_Unsupervised(config_fixed["image_path"], transform=transform)
+
+    #if len(nn.Sequential(*list(modelq.fc.children()))) == 5:
+    #    modelq.fc = nn.Sequential(*list(modelq.fc.children())[:-3])
+
+    modelq = nn.Sequential(*list(modelq.children())[:-5])
+
+    #dataset_embedding = CustomDataset_Supervised(config_fixed["image_path"])
+    dataset_embedding = CustomDataset_Unsupervised(config_fixed["image_path"])
     data_loader_embedding = DataLoader(dataset=dataset_embedding,batch_size=config["batch_size"],shuffle=True)
     
     #Calculamos los embeddings
     # Sacamos tambień los labels y las imágenes para graficar
-    latents,labels, images=log_embeddings(modelq, data_loader_embedding, writer)
+    latents, labels, images=log_embeddings(modelq, data_loader_embedding, writer)
+    latents, labels, images=log_embeddings(modelq, data_loader_embedding, writer)
     torch.save(latents, './saved_models/latents.pt')
 
     return latents, labels, images
@@ -94,8 +101,11 @@ def graph_embeddings(latents, labels):
 
 def prediction(image, modelq, latents, num_neighboors=1):
         
-    transform = transforms.Compose([transforms.ToTensor(), transforms.CenterCrop((240, 240))])
+    transform = transforms.Compose([transforms.ToPILImage(), transforms.Resize((160,160)), transforms.ToTensor()])
     modelq.to(device)
+
+    modelq = nn.Sequential(*list(modelq.children())[:-5])
+
     modelq.eval()
     tensor_sample = transform(image).to(device)
     tensor_sample = tensor_sample.unsqueeze(0)
@@ -113,9 +123,9 @@ def prediction(image, modelq, latents, num_neighboors=1):
 
     # Utilizamos OPTICS para sacar el número de clusters para utilizar posteriormente con el kmeans
     # Utilizamos OPTICS frente al DBSCAN porque sólo hay el parámetro min_samples
-    clustering = OPTICS(min_samples=20).fit(latents)
-    n_clusters_=len(set(clustering.labels_))
-    kmeans = KMeans(n_clusters=n_clusters_, random_state=0).fit(latents)
+    #clustering = OPTICS(min_samples=20).fit(latents)
+    #n_clusters_=len(set(clustering.labels_))
+    kmeans = KMeans(n_clusters=44, random_state=0).fit(latents)
     # Predecimos el cluster más próximo
     label_closest_cluster = kmeans.predict(latent_sample.astype(float))
     label_closest_cluster=label_closest_cluster[0]

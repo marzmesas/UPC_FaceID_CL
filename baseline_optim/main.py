@@ -28,33 +28,36 @@ import datetime
 logdir = os.path.join("logs", datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
 writer = SummaryWriter(log_dir=logdir)
 
+
 #Declaramos device para GPU
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 torch.cuda.empty_cache()
 
 path_model='./saved_models'
 # Variable para entrenar o para evaluar
-training=True
+training= False
 # Variable para optimizar
-optim=False
+optim= False
 # Variable para testear predicciones
-testing = False
+testing = True
 
 # Conjunto de parámetros fijados
 config_fixed={
           # He puesto el path en la configuración para pasar rápidamente del supervised al unsupervised
-          "image_path":'./Cropped-IMGS',
+          "image_path":'./Cropped-IMGS-2',
+          #"image_path": './GTV-Database-UPC',
           "tau": 0.05,
           #"batch_size": 16,
           #"lr": 0.001,
-          "epochs":200,
+          "epochs":25,
           #"K": 2000,
           "momentum_optimizer": 0.9,
           "weight_decay": 1e-6
       }
 
 # Definimos los modelos
-modelq = base_model(pretrained=False).to(device)
+modelq = base_model(pretrained=True).to(device)
+#modelq.load_state_dict(torch.load(os.path.join(path_model, 'modelq.pt'),map_location=torch.device('cpu')))
 modelk = copy.deepcopy(modelq)
 
 # Entrenamos el modelo
@@ -81,12 +84,12 @@ if not optim:
   
   if testing:
     # Cogemos una imagen del dataset
-    path_image_test = './Cropped-IMGS/ID39_001.bmp'
+    path_image_test = './Cropped-IMGS-2/ID01_018.bmp'
     # Cogemos una imagen que no está en el dataset
     #path_image_test = '/home/carles/faceid/carles_musoll.jpeg'
 
     # Recuperamos los embeddings y las imágenes para testear la predicción
-    latents, labels, images = compute_embeddings(trained_modelq, config, config_fixed)
+    latents, labels, images = compute_embeddings(trained_modelq, config, config_fixed, writer)
     #graph_embeddings(latents, labels)
 
     image_test = cv2.imread(path_image_test)
@@ -95,8 +98,8 @@ if not optim:
     print(f'Distance from closest centroid: {dist}, Image from cluster {idxs}')
     
     # Graficamos las k imágenes del dataset que estan más próximas de la imagen de test
-    image_stack = cv2.resize(image_test, (120,120))
-    image_stack = cv2.rectangle(image_stack, (0,0), (120,120), (255,0,0), 10)
+    image_stack = cv2.resize(image_test, (160,160))
+    image_stack = cv2.rectangle(image_stack, (0,0), (160,160), (160,0,0), 10)
     image_stack = cv2.putText(image_stack, text='INPUT IMAGE', org=(10, 40), fontFace=cv2.FONT_HERSHEY_TRIPLEX, fontScale=1, color=(255, 0, 0),thickness=1)
     
     for k, idx in enumerate(idxs):
