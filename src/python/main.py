@@ -56,14 +56,16 @@ optim= False
 # Variable para testear predicciones
 testing = True
 
-# fichero checkpoint para cargar en entrenamiento o test
-checkpoint_file =  'None'
+# fichero checkpoint para cargar en entrenamiento
+pretrained_checkpoint_file =  'None'
 # fichero para cargar pesos pre-entrenados
-pretrained_file =  'None'
+pretrained_model_file =  'None'
 # fichero modelo de salida de entrenamiento
-output_model_file = 'None'
+output_model_file = 'model.pt'
 # fichero modelo de test
 test_model_file = output_model_file
+# fichero checkpoint de test
+test_checkpoint_file = 'None'
 
 # available architectures
 # - resnet18
@@ -99,16 +101,16 @@ config_fixed={
 
 # Definimos los modelos
 modelq = base_model(pretrained=False, arch=arch).to(device)
-# Cargarmos checkpoint
-if os.path.exists(os.path.join(path_checkpoint, checkpoint_file)):
-  checkpoint = torch.load(os.path.join(path_checkpoint, checkpoint_file), map_location=device)
+# Cargarmos checkpoint si existe
+if os.path.exists(os.path.join(path_checkpoint, pretrained_checkpoint_file)):
+  checkpoint = torch.load(os.path.join(path_checkpoint, pretrained_checkpoint_file), map_location=device)
   modelq.load_state_dict(checkpoint['model_state_dict'])
   optim_state=checkpoint['optimizer_state_dict']
 else:
   optim_state=None
-# Cargamos pesos pre-entrenados
-if os.path.exists(os.path.join(path_model, pretrained_file)):  
-  modelq.load_state_dict(torch.load(os.path.join(path_model, pretrained_file),map_location=device))
+# Cargamos pesos pre-entrenados si existe
+if os.path.exists(os.path.join(path_model, pretrained_model_file)):  
+  modelq.load_state_dict(torch.load(os.path.join(path_model, pretrained_model_file),map_location=device))
 # Copiamos el encoder-q a encoder-k
 modelk = copy.deepcopy(modelq)
 
@@ -129,19 +131,24 @@ if not optim:
     # Guardamos modelos entrenados
     torch.save(trained_modelq.state_dict(), os.path.join(path_model, output_model_file))
 
-    # Graficamos los embeddings (opcional)
+    # Graficamos los embeddings en Tensorboard (opcional)
     latents, labels, images, path, trained_modelq = compute_embeddings(modelq=trained_modelq, config=config, config_fixed=config_fixed, writer=writer, testing=False, image_test=None, supervised=supervised, inception=False)
     
   if testing:
-
-    #load model state_dict
+    loaded=False
     trained_modelq = base_model(pretrained=False, arch=arch)
-    if os.path.exists(os.path.join(path_model, test_model_file)):  
+    # Cargamos 
+    if os.path.exists(os.path.join(path_model, test_model_file)):
       trained_modelq.load_state_dict(torch.load(os.path.join(path_model, test_model_file),map_location=device))
-    
-    if os.path.exists(os.path.join(path_checkpoint, checkpoint_file)):
-      checkpoint = torch.load(os.path.join(path_checkpoint, checkpoint_file), map_location=device)
+      loaded=True
+    elif os.path.exists(os.path.join(path_checkpoint, test_checkpoint_file)):  
+      checkpoint = torch.load(os.path.join(path_checkpoint, test_checkpoint_file), map_location=device)
       trained_modelq.load_state_dict(checkpoint['model_state_dict'])
+      loaded=True
+    else:
+      print('Model or checkpoint for testing not found')
+    
+    if loaded:    
 
       latents, labels, images, path, trained_modelq = compute_embeddings(modelq=trained_modelq, config=config, config_fixed=config_fixed, writer=writer, testing=testing, image_test=None, supervised=True, inception=False)
       
@@ -161,9 +168,6 @@ if not optim:
       print(accuracy(latents=latents,images = images, path=path, modelq=trained_modelq,list_files_test=test_names,topk=3,nombres=labels, method='kneighboors'))
       print('TOPK5')
       print(accuracy(latents=latents, images = images, path=path, modelq=trained_modelq,list_files_test=test_names,topk=5,nombres=labels, method='kneighboors'))
-
-  else:
-    print('File not found')
 
 else:
 
