@@ -12,6 +12,8 @@ import torch.optim as optim
 from ray import tune
 import wandb
 
+os.environ['WANDB_MODE'] = 'offline'
+
 #InfoNCE loss function
 def loss_function(q, k, queue, tau):
 
@@ -65,7 +67,7 @@ def train_epoch(data_loader, modelq, modelk, optimizer, criterion, queue, config
         
     return cumu_loss/len(data_loader)
 
-def train_model(config, config_fixed, modelq, modelk):
+def train_model(config, config_fixed, modelq, modelk, optim_state=None):
     
     # Initialize a new wandb run
     with wandb.init(config=config):
@@ -74,11 +76,17 @@ def train_model(config, config_fixed, modelq, modelk):
         config = wandb.config
 
         optimizer = optim.SGD(modelq.parameters(), lr=config["lr"], momentum=config_fixed["momentum_optimizer"], weight_decay=config_fixed["weight_decay"])
-    
-        transform = transforms.Compose([transforms.ToTensor(), transforms.CenterCrop((120, 120))])
-        dataset_queue = CustomDataset_Unsupervised(config_fixed['image_path'], transform)
+        if optim_state is not None:
+            optimizer.load_state_dict(optim_state)
+
+        if config_fixed["supervised"]:
+            dataset_queue = CustomDataset_Supervised(config_fixed['image_path'])
+            dataset = CustomDataset_Supervised(config_fixed['image_path'])
+        else:
+            dataset_queue = CustomDataset_Unsupervised(config_fixed['image_path']) 
+            dataset = CustomDataset_Unsupervised(config_fixed['image_path'])
+          
         data_loader_queue = DataLoader(dataset=dataset_queue,batch_size=config["batch_size"],shuffle=True)
-        dataset = CustomDataset_Unsupervised(config_fixed['image_path'], transform)
         data_loader = DataLoader(dataset=dataset,batch_size=config["batch_size"],shuffle=True)
 
         num_epochs = 0
@@ -114,9 +122,14 @@ def train_model(config, config_fixed, modelq, modelk):
         modelq.train()
         for epoch in range(config_fixed["epochs"]):
             loss_train=train_epoch(data_loader, modelq, modelk, optimizer, loss_function, queue, config, config_fixed)
-            #Guardamos las losses y hacemos la media, así como la metemos en el writer para el tensorboard
             print(f'Epoch {epoch} - Loss: {loss_train}')
-            #'Epoch'+str(epoch)+":"+" Loss: "+str(epoch_losses_train[epoch]))
-            wandb.log({"loss": loss_train}) 
+            if epoch % config_fixed["checkpoint_interval"] == 0:
+                torch.save({
+                    'epoch': epoch,
+                    'model_state_dict': modelq.state_dict(),
+                    'optimizer_state_dict': optimizer.state_dict(),
+                    'loss': loss_train,
+                    },  './checkpoints/checkpoint_'+str(epoch)+'.pt')
+            wandb.log({"loss": loss_train})
 
-        return modelq, modelk
+    return modelq, modelk

@@ -1,5 +1,6 @@
 import os
 import torch
+import torch.nn as nn
 
 torch.manual_seed(1)
 if torch.cuda.is_available():
@@ -11,11 +12,8 @@ from os.path import join
 from model import base_model
 from logging_moco import log_embeddings
 from run_training import train_model
-from evaluation import graph_embeddings, compute_embeddings, prediction
+from evaluation import graph_embeddings, compute_embeddings, prediction, accuracy
 
-#from ray import tune
-#from ray.tune.schedulers import ASHAScheduler
-#from ray.tune import CLIReporter
 import wandb
 import cv2
 import numpy as np
@@ -28,33 +26,90 @@ import datetime
 logdir = os.path.join("logs", datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
 writer = SummaryWriter(log_dir=logdir)
 
+from dataset import CustomDataset_Supervised, CustomDataset_Unsupervised, CustomDataset_Testing
+import glob
+import random
+from torch.utils.data import DataLoader, Dataset
+from torchvision import transforms
+
 #Declaramos device para GPU
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 torch.cuda.empty_cache()
 
-path_model='../resources/saved_models'
+
+############# - Entorno a definir ####################
+
+# Tipo entrenamiendo
+# supervised --> True
+# self-supervised --> False
+supervised = False
+
+path_img_training = './Cropped-IMGS-5'
+path_img_testing = './Cropped-IMGS-5-supervised'
+
+path_model='./models'
+path_checkpoint='./checkpoints'
 # Variable para entrenar o para evaluar
-training=True
+training = False
 # Variable para optimizar
-optim=False
+optim= False
 # Variable para testear predicciones
-testing = False
+testing = True
+
+# fichero checkpoint para cargar en entrenamiento o test
+checkpoint_file =  'None'
+# fichero para cargar pesos pre-entrenados
+pretrained_file =  'None'
+# fichero modelo de salida de entrenamiento
+output_model_file = 'None'
+# fichero modelo de test
+test_model_file = output_model_file
+
+# available architectures
+# - resnet18
+# - resnet50
+# - resnet101
+# - inception resnet v1
+# - vgg16
+arch='resnet18'
+
+# Tamaño de la queue
+K=350
+batch_size=32
+epochs=2000
+# Intervalo para guardar checkpoints
+checkpoint_interval=1000
+
+######################################################
 
 # Conjunto de parámetros fijados
 config_fixed={
-          # He puesto el path en la configuración para pasar rápidamente del supervised al unsupervised
-          "image_path":'../../Datasets/Cropped-IMGS',
+          # Path imágenes training
+          "image_path": path_img_training,
+          # Path imágenes testing
+          "image_path_test": path_img_testing,
           "tau": 0.05,
-          #"batch_size": 16,
-          #"lr": 0.001,
-          "epochs":200,
-          #"K": 2000,
+          "epochs":epochs,
           "momentum_optimizer": 0.9,
-          "weight_decay": 1e-6
+          "weight_decay": 1e-6,
+          "checkpoint_interval": checkpoint_interval,
+          "supervised": supervised
+          
       }
 
 # Definimos los modelos
-modelq = base_model(pretrained=False).to(device)
+modelq = base_model(pretrained=False, arch=arch).to(device)
+# Cargarmos checkpoint
+if os.path.exists(os.path.join(path_checkpoint, checkpoint_file)):
+  checkpoint = torch.load(os.path.join(path_checkpoint, checkpoint_file), map_location=device)
+  modelq.load_state_dict(checkpoint['model_state_dict'])
+  optim_state=checkpoint['optimizer_state_dict']
+else:
+  optim_state=None
+# Cargamos pesos pre-entrenados
+if os.path.exists(os.path.join(path_model, pretrained_file)):  
+  modelq.load_state_dict(torch.load(os.path.join(path_model, pretrained_file),map_location=device))
+# Copiamos el encoder-q a encoder-k
 modelk = copy.deepcopy(modelq)
 
 # Entrenamos el modelo
@@ -62,98 +117,55 @@ modelk = copy.deepcopy(modelq)
 if not optim:
   config={}
   config['lr']= 0.001
-  config['batch_size']=16
+  config['batch_size']=batch_size
   config['momentum']=0.999
-  config['K']=2000
+  config['K']=K
   
   if training:
 
-    trained_modelq, trainet_modelk=train_model(config, config_fixed, modelq, modelk)
+    # Entreno
+    trained_modelq, trained_modelk=train_model(config, config_fixed, modelq, modelk, optim_state)
 
     # Guardamos modelos entrenados
-    torch.save(modelq.state_dict(), os.path.join(path_model, 'modelq.pt'))
-    torch.save(modelk.state_dict(), os.path.join(path_model, 'modelk.pt'))
+    torch.save(trained_modelq.state_dict(), os.path.join(path_model, output_model_file))
+
+    # Graficamos los embeddings (opcional)
+    latents, labels, images, path, trained_modelq = compute_embeddings(modelq=trained_modelq, config=config, config_fixed=config_fixed, writer=writer, testing=False, image_test=None, supervised=supervised, inception=False)
+    
+  if testing:
+
+    #load model state_dict
+    trained_modelq = base_model(pretrained=False, arch=arch)
+    if os.path.exists(os.path.join(path_model, test_model_file)):  
+      trained_modelq.load_state_dict(torch.load(os.path.join(path_model, test_model_file),map_location=device))
+    
+    if os.path.exists(os.path.join(path_checkpoint, checkpoint_file)):
+      checkpoint = torch.load(os.path.join(path_checkpoint, checkpoint_file), map_location=device)
+      trained_modelq.load_state_dict(checkpoint['model_state_dict'])
+
+      latents, labels, images, path, trained_modelq = compute_embeddings(modelq=trained_modelq, config=config, config_fixed=config_fixed, writer=writer, testing=testing, image_test=None, supervised=True, inception=False)
+      
+      test_names = sorted(glob.glob(config_fixed['image_path_test']+'/*/*.bmp',recursive=True))
+
+      print('K-MEANS METHOD')
+      print('TOPK1')
+      print(accuracy(latents=latents, images=images, path=path, modelq=trained_modelq,list_files_test=test_names,topk=1,nombres=labels, method='kmeans'))
+      print('TOPK3')
+      print(accuracy(latents=latents, images = images, path=path, modelq=trained_modelq,list_files_test=test_names,topk=3,nombres=labels, method='kmeans'))
+      print('TOPK5')
+      print(accuracy(latents=latents, images = images, path=path, modelq=trained_modelq,list_files_test=test_names,topk=5,nombres=labels, method='kmeans'))
+      print('K-NEIGHBOORS METHOD')
+      print('TOPK1')
+      print(accuracy(latents=latents,images = images, path=path, modelq=trained_modelq,list_files_test=test_names,topk=1,nombres=labels, method='kneighboors'))
+      print('TOPK3')
+      print(accuracy(latents=latents,images = images, path=path, modelq=trained_modelq,list_files_test=test_names,topk=3,nombres=labels, method='kneighboors'))
+      print('TOPK5')
+      print(accuracy(latents=latents, images = images, path=path, modelq=trained_modelq,list_files_test=test_names,topk=5,nombres=labels, method='kneighboors'))
 
   else:
-    #load model state_dict
-    trained_modelq = base_model(pretrained=False)
-    trained_modelq.load_state_dict(torch.load(os.path.join(path_model, 'modelq.pt'),map_location=torch.device('cpu')))
-  
-  if testing:
-    # Cogemos una imagen del dataset
-    path_image_test = '../../Datasets/Cropped-IMGS/ID39_001.bmp'
-    # Cogemos una imagen que no está en el dataset
-    #path_image_test = '/home/carles/faceid/carles_musoll.jpeg'
-
-    # Recuperamos los embeddings y las imágenes para testear la predicción
-    latents, labels, images = compute_embeddings(trained_modelq, config, config_fixed)
-    #graph_embeddings(latents, labels)
-
-    image_test = cv2.imread(path_image_test)
-    image_test = cv2.cvtColor(image_test, cv2.COLOR_BGR2RGB)
-    dist, idxs = prediction(image_test, trained_modelq, latents, num_neighboors=5)
-    print(f'Distance from closest centroid: {dist}, Image from cluster {idxs}')
-    
-    # Graficamos las k imágenes del dataset que estan más próximas de la imagen de test
-    image_stack = cv2.resize(image_test, (120,120))
-    image_stack = cv2.rectangle(image_stack, (0,0), (120,120), (255,0,0), 10)
-    image_stack = cv2.putText(image_stack, text='INPUT IMAGE', org=(10, 40), fontFace=cv2.FONT_HERSHEY_TRIPLEX, fontScale=1, color=(255, 0, 0),thickness=1)
-    
-    for k, idx in enumerate(idxs):
-      closer_image = images[idx]
-      closer_image = closer_image.squeeze(0)
-      closer_image = torch.permute(closer_image, (1,2,0))
-      closer_image = closer_image.numpy()
-      closer_image = np.ascontiguousarray((closer_image*255), dtype=np.uint8)
-      closer_image = cv2.putText(closer_image, text=f'Dist {round(dist, 4)}', org=(10, 20), fontFace=cv2.FONT_HERSHEY_TRIPLEX, fontScale=0.3, color=(0, 255, 0),thickness=1)
-      image_stack = np.hstack((image_stack, closer_image))
-      
-    plt.imshow(image_stack)
-    plt.show()
+    print('File not found')
 
 else:
-  # Optimizacion ASHA de la librería tune.ray (la dejo por si la necesitamos más adelante)
-  '''
-  config={
-          "lr": tune.uniform(1e-4, 1e-1),
-          "batch_size": tune.choice([8,16,32, 64,128]),
-          "tau": tune.uniform(0.1, 0.01),
-          "momentum": tune.uniform(0.98, 0.999),
-          "epochs": tune.choice([200,400,600, 800,1000])
-      }
-
-  scheduler = ASHAScheduler(
-        metric="loss",
-        mode="min",
-        max_t=500,
-        grace_period=1,
-        reduction_factor=2)
-
-  reporter = CLIReporter(
-        # parameter_columns=["l1", "l2", "lr", "batch_size"],
-        metric_columns=["loss"])
-
-  gpus_per_trial = 1
-  
-  result = tune.run(
-      partial(train_model, config_fixed=config_fixed, resnetq=modelq, resnetk=modelk, writer=None, optimization=optim),
-      resources_per_trial={"cpu": 4, "gpu": gpus_per_trial},
-      config=config,
-      num_samples=30,
-      scheduler=scheduler,
-      progress_reporter=reporter,
-      checkpoint_at_end=True)
-
-  best_trial = result.get_best_trial("loss", "min", "last")
-  print("Best trial config: {}".format(best_trial.config))
-  
-  config={}
-  config['lr']=best_trial.config['lr']
-  config['batch_size']=best_trial.config['batch_size']
-  config['tau']=best_trial.config['tau']
-  config['momentum']=best_trial.config['momentum']
-  config['epochs']=best_trial.config['epochs']
-  '''
 
   # Optimizacion con la librería W&B (para más adelante)
   metric = {
@@ -173,11 +185,6 @@ else:
         'min': 0.0001,
         'max': 0.1
         },
-      #'tau':  {
-      #  'distribution': "uniform",
-      #  'min':0.01,
-      #  'max':0.1
-      #  },
       'momentum':  {
         'distribution': "uniform",
         'min':0.95,
@@ -193,6 +200,3 @@ else:
   config=None
   wandb.agent(sweep_id, partial(train_model, config, config_fixed, modelq, modelk), count=count)
 
-  # Una vez hecha la optimizacion, deberemos guardar los modelos optimizados 
-  #torch.save(modelq.state_dict(), os.path.join(path_model, 'modelq_opt.pt'))
-  #torch.save(modelk.state_dict(), os.path.join(path_model, 'modelk_opt.pt'))
