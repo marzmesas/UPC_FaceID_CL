@@ -45,13 +45,12 @@ class CustomDataset_Unsupervised(Dataset):
       transforms.GaussianBlur(kernel_size=(3, 3), sigma=(0.5, 2)),
       transforms.RandomGrayscale(p=0.2),
       transforms.RandomHorizontalFlip(p=0.5),
-      #transforms.RandomCrop(size=(90,90)),
-      transforms.RandomResizedCrop(size=(160, 160)),
+      transforms.RandomCrop(size=(90,90)),
       transforms.ToTensor()])
       
     '''
       Otras transformaciones probadas
-      
+      transforms.RandomResizedCrop(size=(160, 160)),
       transforms.RandomPerspective(distortion_scale=0.5, p=1.0),
       transforms.RandomEqualize(),
       transforms.Normalize((0.5188, 0.3797, 0.3145),(0.0712, 0.0653, 0.0722))
