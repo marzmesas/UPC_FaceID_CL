@@ -26,10 +26,10 @@ def compute_embeddings(modelq, config, config_fixed, writer, testing=False, imag
     
     modelq.eval()
 
-    #if inception:
-    #    modelq = nn.Sequential(*list(modelq.children())[:-5])
-    #else:
-    #    modelq.fc = nn.Sequential(*list(modelq.fc.children())[:-5])
+    if inception:
+        modelq = nn.Sequential(*list(modelq.children())[:-5])
+    else:
+        modelq.fc = nn.Sequential(*list(modelq.fc.children())[:-5])
     
     if testing:
         dataset_embedding = CustomDataset_Testing(config_fixed['image_path_test'])
