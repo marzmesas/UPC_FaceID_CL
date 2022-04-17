@@ -1,20 +1,27 @@
 import torch
 from torchvision import transforms
+import os
+import datetime
+from torch.utils.tensorboard import SummaryWriter
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 torch.cuda.empty_cache()
 
-def log_embeddings(model, data_loader, writer, testing=False, image_test = None):
+def log_embeddings(model, data_loader, testing=False, image_test = None,show_latents=False):
     
   list_latent = []
   list_images = []
   list_labels = []
   list_path = []
-
+  if show_latents:
+    if testing:
+      logdir = os.path.join("./src/python/logs", datetime.datetime.now().strftime("%Y%m%d-%H%M%S")+"_EmbeddingsTraining")
+    else:
+      logdir = os.path.join("./src/python/logs", datetime.datetime.now().strftime("%Y%m%d-%H%M%S")+"_EmbeddingsTest")
+    writer = SummaryWriter(log_dir=logdir)
   model=model.to(device)
 
   transform = transforms.Compose([transforms.ToPILImage(), transforms.Resize((160,160)), transforms.ToTensor()])
-  
   for batch in data_loader:
     imgs = batch['image0'].to(device)
     labels = batch['label']
@@ -44,7 +51,8 @@ def log_embeddings(model, data_loader, writer, testing=False, image_test = None)
   else:
     path=[]
   #Guardamos los embeddings para el tensorboard y su representación con PCA,T-SNE
-  writer.add_embedding(latent,metadata=labels, label_img=images)
+  if show_latents:
+    writer.add_embedding(latent,metadata=labels, label_img=images)
 
   return latent,labels, images, path
  

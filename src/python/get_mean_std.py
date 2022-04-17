@@ -5,7 +5,7 @@ import cv2
 transform = T.ToTensor()
 #dataset = datasets.ImageNet(".", split="train", transform=transform)
 
-path_dir = './Cropped-IMGS-2'
+path_dir = './Datasets/Cropped-IMGS-2'
 
 means = []
 stds = []
