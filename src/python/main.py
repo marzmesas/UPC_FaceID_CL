@@ -12,7 +12,7 @@ from os.path import join
 from model import base_model
 from logging_moco import log_embeddings
 from run_training import train_model
-from evaluation import graph_embeddings, compute_embeddings, prediction, accuracy
+from evaluation import graph_embeddings, compute_embeddings, prediction, accuracy, silhouette
 
 import wandb
 import cv2
@@ -44,13 +44,13 @@ torch.cuda.empty_cache()
 # self-supervised --> False
 supervised = False
 
-path_img_training = './Cropped-IMGS-5'
-path_img_testing = './Cropped-IMGS-5-supervised'
+path_img_training = './Cropped-IMGS-2'
+path_img_testing = './Cropped-IMGS-2-supervised'
 
 path_model='./models'
 path_checkpoint='./checkpoints'
 # Variable para entrenar o para evaluar
-training = False
+training = True
 # Variable para optimizar
 optim= False
 # Variable para testear predicciones
@@ -61,7 +61,7 @@ pretrained_checkpoint_file =  'None'
 # fichero para cargar pesos pre-entrenados
 pretrained_model_file =  'None'
 # fichero modelo de salida de entrenamiento
-output_model_file = 'model.pt'
+output_model_file = 'None'
 # fichero modelo de test
 test_model_file = output_model_file
 # fichero checkpoint de test
@@ -76,11 +76,11 @@ test_checkpoint_file = 'None'
 arch='resnet18'
 
 # Tamaño de la queue
-K=350
+K=2000
 batch_size=32
-epochs=2000
+epochs=200
 # Intervalo para guardar checkpoints
-checkpoint_interval=1000
+checkpoint_interval=50
 
 ######################################################
 
@@ -137,7 +137,7 @@ if not optim:
   if testing:
     loaded=False
     trained_modelq = base_model(pretrained=False, arch=arch)
-    # Cargamos 
+    # Cargamos
     if os.path.exists(os.path.join(path_model, test_model_file)):
       trained_modelq.load_state_dict(torch.load(os.path.join(path_model, test_model_file),map_location=device))
       loaded=True
@@ -168,6 +168,7 @@ if not optim:
       print(accuracy(latents=latents,images = images, path=path, modelq=trained_modelq,list_files_test=test_names,topk=3,nombres=labels, method='kneighboors'))
       print('TOPK5')
       print(accuracy(latents=latents, images = images, path=path, modelq=trained_modelq,list_files_test=test_names,topk=5,nombres=labels, method='kneighboors'))
+      silhouette(X=latents)
 
 else:
 
