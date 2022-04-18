@@ -18,14 +18,14 @@ def delete_images_from_folder(folder, imgsz):
 
 #Crear la carpeta nueva
 
-cropped_folder_path = '../../Datasets/Cropped-IMGS/'
+cropped_folder_path = './Datasets/Cropped-IMGS-1-supervised/'
 if not os.path.exists(cropped_folder_path):
     os.mkdir(cropped_folder_path)
 
 def run():
 
-    for folder in os.listdir('../../Datasets/GTV-Database-UPC/'): #loop por todas las carpetas de imágenes
-        folder_path = f'../../Datasets/GTV-Database-UPC/{folder}/'
+    for folder in os.listdir('./Datasets/GTV-Database-UPC/'): #loop por todas las carpetas de imágenes
+        folder_path = f'./Datasets/GTV-Database-UPC/{folder}/'
         imgs = load_images_from_folder(folder_path) #obtener todas las imágenes de una carpeta
         # os.mkdir(f'{cropped_folder_path}{folder}')
         print(f'Cropping folder {folder}', end='')

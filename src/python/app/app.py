@@ -21,16 +21,16 @@ except OSError as error:
     pass
 
 #Load pretrained face detection model    
-net = cv2.dnn.readNetFromCaffe('./detection_model/deploy.prototxt.txt', './detection_model/res10_300x300_ssd_iter_140000.caffemodel')
+net = cv2.dnn.readNetFromCaffe('./src/python/app/detection_model/deploy.prototxt.txt', './src/python/app/detection_model/res10_300x300_ssd_iter_140000.caffemodel')
 
 #instatiate flask app  
-app = Flask(__name__, template_folder='./templates')
+app = Flask(__name__, template_folder='./src/python/app/templates')
 
 #Load unsupervised model
 trained_modelq = base_model(pretrained=False)
-trained_modelq.load_state_dict(torch.load(os.path.join('../../resources/saved_models', 'modelq.pt'),map_location=torch.device('cpu')))
+trained_modelq.load_state_dict(torch.load(os.path.join('./src/python/saved_models', 'modelq.pt'),map_location=torch.device('cpu')))
 #Load latents
-latents = torch.load('../../resources/saved_models/latents.pt')
+latents = torch.load('./src/python/saved_models/latents.pt')
 
 camera = cv2.VideoCapture(0)
 

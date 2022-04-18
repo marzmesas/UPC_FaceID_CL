@@ -1,55 +1,57 @@
 import os
-import datetime
 import torch.nn as nn
 import torch
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader
 from dataset import CustomDataset_Supervised, CustomDataset_Unsupervised, CustomDataset_Testing
 from logging_moco import log_embeddings
-from torchvision import datasets, transforms
-from torch.utils.tensorboard import SummaryWriter
+from torchvision import transforms
 import umap
 from sklearn.cluster import OPTICS, KMeans
 from sklearn.decomposition import PCA
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
+from sklearn.preprocessing import StandardScaler
 import seaborn as sns
 from sklearn.neighbors import NearestNeighbors
 import cv2
 import numpy as np
 from scipy.spatial import distance
-from PIL import Image
-
+import glob
+import random
+import torch.nn.functional as F
 from sklearn.metrics import silhouette_samples, silhouette_score
 import matplotlib.cm as cm
 
 
+from dataset import CustomDataset_supervised_Testing
+
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-def compute_embeddings(modelq, config, config_fixed, writer, testing=False, image_test=None, supervised=False, inception = False):
+def compute_embeddings(modelq, config, config_fixed, testing=False, image_test=None, supervised=False, inception = False,show_latents=False,show_latents_test=False):
     
     modelq.eval()
-    
+
     if inception:
         modelq = nn.Sequential(*list(modelq.children())[:-5])
     else:
         modelq.fc = nn.Sequential(*list(modelq.fc.children())[:-5])
     
-
     if testing:
-        dataset_embedding = CustomDataset_Testing(config_fixed['image_path_test'])
-        data_loader_embedding = DataLoader(dataset=dataset_embedding,batch_size=config["batch_size"],shuffle=True)
+        dataset_embedding = CustomDataset_Testing(config_fixed['image_path'])
+        data_loader_embedding = DataLoader(dataset=dataset_embedding,batch_size=config["batch_size"],shuffle=False)
     else:
         if supervised:
-            dataset_embedding = CustomDataset_Supervised(config_fixed['image_path_test'])
+            dataset_embedding = CustomDataset_Supervised(config_fixed['image_path'])
             data_loader_embedding = DataLoader(dataset=dataset_embedding,batch_size=config["batch_size"],shuffle=True)
         else:
             dataset_embedding = CustomDataset_Unsupervised(config_fixed['image_path'])
             data_loader_embedding = DataLoader(dataset=dataset_embedding,batch_size=config["batch_size"],shuffle=True)
-    
+    if show_latents_test:
+        dataset_embedding = CustomDataset_Testing(config_fixed['image_path_test'])
+        data_loader_embedding = DataLoader(dataset=dataset_embedding,batch_size=config["batch_size"],shuffle=False)
     #Calculamos los embeddings
     # Sacamos tambień los labels y las imágenes para graficar
-    latents, labels, images, path=log_embeddings(modelq, data_loader_embedding, writer, testing, image_test)
+    latents, labels, images, path=log_embeddings(modelq, data_loader_embedding, testing, image_test,show_latents)
 
     return latents, labels, images, path, modelq
 
@@ -139,27 +141,24 @@ def prediction(image, modelq, latents, num_neighboors=1):
 
     return distance_from_closest_centroid, idx
 
-def accuracy(latents,images,path, modelq,list_files_test,topk,nombres, method):
+def accuracy(latents,modelq,list_files_test,topk,nombres,method):
   topk = topk
   accuracy=0
 
   kmeans = KMeans(n_clusters=44, random_state=0).fit(latents)
+  score = silhouette_score(latents, kmeans.labels_, metric='euclidean')
+  print('Silhouetter Score: %.3f' % score)
   neigh = NearestNeighbors(n_neighbors=topk+1)
   neigh.fit(latents)
 
   transform = transforms.Compose([transforms.ToPILImage(), transforms.Resize((160,160)), transforms.ToTensor()])
 
   for i in range(len(list_files_test)):
-    #print(i)
-
     img = cv2.imread(list_files_test[i])
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    #img = Image.open(list_files_test[i]).convert('RGB')
     nombre_groundtruth = list_files_test[i]
-    #print(nombre_groundtruth)
     nombre_groundtruth=nombre_groundtruth.split('/')[-2][-2:]
-    #print(nombre_groundtruth)
-    #print("el numero de la persona es: "+nombre_groundtruth)
+    #print("El nombre real es: "+str(nombre_groundtruth))
     res = transform(img).to(device)
     tensor_sample = res.unsqueeze(0)
     latent_sample = modelq(tensor_sample)
@@ -179,35 +178,16 @@ def accuracy(latents,images,path, modelq,list_files_test,topk,nombres, method):
         idxs=idxs[1:]
         list_labels = (nombres[idxs]).tolist()
         
-        '''
-        # Código para debugar
-        imgs_path=[]
-        
-        for i,idx in enumerate(idxs):
-            imgs_path.append(path[idx])
-        image_stack = cv2.resize(img, (160,160))
-        image_stack = cv2.rectangle(image_stack, (0,0), (160,160), (160,0,0), 10)
-        image_stack = cv2.putText(image_stack, text='INPUT IMAGE', org=(10, 40), fontFace=cv2.FONT_HERSHEY_TRIPLEX, fontScale=1, color=(255, 0, 0),thickness=1)
-
-        for path_ in imgs_path:
-        closer_image = cv2.imread(path_)
-        closer_image = cv2.cvtColor(closer_image, cv2.COLOR_BGR2RGB)
-        image_stack = np.hstack((image_stack, closer_image))
-        
-        plt.imshow(image_stack)
-        plt.show()
-        '''
-
     for i,_ in enumerate(list_labels):  
       nombre_prediccion = list_labels[i]
-      #print(f'el numero de la persona predicha es {nombre_prediccion} y el groundtruth es {int(nombre_groundtruth)}')
+      #print("El nombre predicho es: "+str(nombre_prediccion))
       if nombre_prediccion == int((nombre_groundtruth)):
         accuracy+=1
         break
   
   accuracy = (accuracy/len(list_files_test))*100    
-    
   return accuracy
+
 
 def silhouette(X):
 
@@ -329,4 +309,59 @@ def silhouette(X):
     plt.show()
 
 
+
+
+def topkcorrect_predictions (predicted_batch,label_batch,topk=(1,)):
+  maxk = max(topk)
+  _, pred = predicted_batch.topk(k=maxk, dim=1)
+  pred = pred.t() 
+  target_reshaped = label_batch.view(1, -1).expand_as(pred)  # [B] -> [B, 1] -> [maxk, B]
+  # compare every topk's model prediction with the ground truth & give credit if any matches the ground truth
+  correct = (pred == target_reshaped)
+  list_topk_accs = []
+  for k in topk:
+    ind_which_topk_matched_truth = correct[:k] 
+    flattened_indicator_which_topk_matched_truth = ind_which_topk_matched_truth.reshape(-1).float() 
+    tot_correct_topk = flattened_indicator_which_topk_matched_truth.float().sum(dim=0, keepdim=True)
+    topk_acc = tot_correct_topk  
+    list_topk_accs.append(topk_acc)
+  return list_topk_accs
+
+
+def test_supervised_model(network_contrastive,Linear_model,config_fixed,K):
+    Linear_model.eval().to(device)
+    network_contrastive.eval().to(device)
+    test_loss=0
+    acc_test=0
+    criterion = F.nll_loss
+    Classes_List = sorted(os.listdir(config_fixed["image_path_test"]))
+    Classes_Map = dict()
+    for i in range(len(Classes_List)):
+        Classes_Map[Classes_List[i]] = i
+    test_names = sorted(glob.glob(config_fixed["image_path_test"]+'/*/*.bmp',recursive=True))
+    names_test = random.sample(test_names, len(test_names))
+    labels_test = [(x.split('/')[-1])[0:4] for x in names_test]
+    transform = transforms.Compose([transforms.ToPILImage(), transforms.Resize((160,160)), transforms.ToTensor()])
+    dataset_test = CustomDataset_supervised_Testing(names_test,labels_test,transform)
+    dataloader_test = DataLoader(dataset_test,batch_size=16,shuffle=False)
+
+    if len(nn.Sequential(*list(network_contrastive.fc.children()))) == 5:
+        network_contrastive.fc = nn.Sequential(*list(network_contrastive.fc.children())[:-5])
+        
+    with torch.no_grad():
+        for i,data in enumerate(dataloader_test):
+            image = data["image1"]
+            image= image.to(device)
+            y_actual = data["label"]
+            y_actual = torch.tensor([Classes_Map[i] for i in y_actual])
+            y_actual =y_actual.to(device)
+            y_resnetq = network_contrastive(image)
+            y_predicted = Linear_model(y_resnetq)
+            accuracy_topk = topkcorrect_predictions(y_predicted,y_actual,(K,))
+            acc_test += accuracy_topk[0].item()
+            test_loss += criterion(y_predicted, y_actual, reduction='sum').item() # sum up batch loss
+    test_loss /= len(dataloader_test.dataset)
+    test_acc = (acc_test/len(dataloader_test.dataset))*100
+    print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(test_loss, acc_test, len(dataloader_test.dataset), test_acc,))
+    return test_loss,test_acc
     

@@ -38,17 +38,17 @@ def detect_face(frame, net):
 
 #Crear la carpeta nueva
 
-cropped_folder_path = './Cropped-IMGS-2-supervised/'
+cropped_folder_path = './Datasets/Cropped-IMGS-2-supervised/'
 if not os.path.exists(cropped_folder_path):
     os.mkdir(cropped_folder_path)
 
 def run():
 
     #Load pretrained face detection model    
-    net = cv2.dnn.readNetFromCaffe('./app/detection_model/deploy.prototxt.txt', './app/detection_model/res10_300x300_ssd_iter_140000.caffemodel')
+    net = cv2.dnn.readNetFromCaffe('./src/python/app/detection_model/deploy.prototxt.txt', './src/python/app/detection_model/res10_300x300_ssd_iter_140000.caffemodel')
 
-    for folder in os.listdir('./GTV-Database-UPC-2'): #loop por todas las carpetas de imágenes
-        folder_path = f'./GTV-Database-UPC-2/{folder}/'
+    for folder in os.listdir('./Datasets/GTV-Database-UPC'): #loop por todas las carpetas de imágenes
+        folder_path = f'./Datasets/GTV-Database-UPC/{folder}/'
         imgs = load_images_from_folder(folder_path) #obtener todas las imágenes de una carpeta
         ##########################################
         os.mkdir(f'{cropped_folder_path}{folder}')

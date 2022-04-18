@@ -2,7 +2,7 @@ import torch
 from collections import OrderedDict
 import torchvision.models as models
 import torch.nn as nn
-from inception_resnet_v1 import InceptionResnetV1
+#from inception_resnet_v1 import InceptionResnetV1
 import torch.nn.functional as F
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -22,6 +22,20 @@ class normalize(nn.Module):
     def forward(self, x):
         x = F.normalize(x, p=2, dim=1)
         return x
+
+class LinearNetwork(nn.Module):
+  def __init__(self):
+    super(LinearNetwork, self).__init__()
+    self.fc1 = torch.nn.Linear(512,256)
+    self.fc2 = torch.nn.Linear(256,128)
+    self.fc3 = torch.nn.Linear(128,44)
+    self.act1 = nn.ReLU()
+    self.act2 = nn.LogSoftmax()
+  def forward(self,x):
+    x=self.act1(self.fc1(x))
+    x=self.act1(self.fc2(x))
+    y=self.act2(self.fc3(x))
+    return y
 
 
 def base_model(pretrained=False, arch='resnet18'):
@@ -63,7 +77,7 @@ def base_model(pretrained=False, arch='resnet18'):
     
     elif arch=='inception':
 
-        model = InceptionResnetV1()
+        #model = InceptionResnetV1()
         if pretrained:
             pretrained_dict = torch.load('./20180402-114759-vggface2.pt')
             model_dict = model.state_dict()
@@ -112,5 +126,9 @@ def base_model(pretrained=False, arch='resnet18'):
 
     return model
 
+    
+def supervised_model():
+    model = LinearNetwork()
+    return model
 
 

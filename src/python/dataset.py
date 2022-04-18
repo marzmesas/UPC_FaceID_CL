@@ -2,16 +2,12 @@ import os
 from os.path import join
 from torch.utils.data import Dataset
 from random import sample
-from skimage import io
 from torchvision import transforms
 import cv2
-from PIL import Image
 import torch
 import glob
-import numpy as np
-import matplotlib.pyplot as plt
 
-#Clase de custom dataset
+#Clase de custom dataset para contrastive supervised
 class CustomDataset_Supervised(Dataset):
   def __init__(self, path, transform=transforms.Compose([transforms.ToPILImage(), transforms.Resize((160,160)), transforms.ToTensor()])):
     self.list_files = [[join(path, x, y) for y in os.listdir(join(path, x))] for x in os.listdir(path)]
@@ -34,6 +30,7 @@ class CustomDataset_Supervised(Dataset):
 
     return {'image0': img_0, 'image1': img_0, 'image2': img_1, 'label': idx}
 
+#clase customdataset para contrastive unsupervised
 class CustomDataset_Unsupervised(Dataset):
   def __init__(self, path, transform=transforms.Compose([transforms.ToPILImage(), transforms.Resize((160,160)), transforms.ToTensor()])):
     self.path = path
@@ -81,11 +78,14 @@ class CustomDataset_Unsupervised(Dataset):
 
     return {'image0':img_0, 'image1': img_1, 'image2': img_2, 'label': idx}
 
+#clase customdataset para testing
 class CustomDataset_Testing(Dataset):
   def __init__(self, path, transform=transforms.Compose([transforms.ToPILImage(), transforms.Resize((160,160)), transforms.ToTensor()])):
     self.list_files = sorted(glob.glob(path+'/*/*.bmp',recursive=True))
+    if self.list_files==[]:
+      self.list_files = sorted(glob.glob(path+'/*.bmp',recursive=True))
     self.transform = transform
-    self.labels = [x.split('/')[2] for x in self.list_files]
+    self.labels = [(x.split('/')[-1])[0:4] for x in self.list_files]
 
   def __len__(self):
     return len(self.list_files)
@@ -101,3 +101,24 @@ class CustomDataset_Testing(Dataset):
     if self.transform:
       img_0 = self.transform(image)
     return {'image0': img_0,'label': label, 'path': img_name}
+
+#clase customadatset para training y testing del supervised con la MLP
+class CustomDataset_supervised_Testing(Dataset):
+  def __init__(self, filenames,labels, transform=None):
+    self.list_files = filenames
+    self.transform = transform
+    self.labels = labels
+
+  def __len__(self):
+    return len(self.list_files)
+  #Devolver 2 imágenes y los labels
+  def __getitem__(self, idx):
+    if torch.is_tensor(idx):
+      idx = idx.tolist()
+    img_name = self.list_files[idx]
+    image = cv2.imread(img_name)
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    label = self.labels[idx]
+    if self.transform:
+      img_0 = self.transform(image)
+    return {'image1': img_0,'label': label}
