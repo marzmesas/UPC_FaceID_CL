@@ -38,7 +38,7 @@ def compute_embeddings(modelq, config, config_fixed, testing=False, image_test=N
     
     if testing:
         dataset_embedding = CustomDataset_Testing(config_fixed['image_path'])
-        data_loader_embedding = DataLoader(dataset=dataset_embedding,batch_size=config["batch_size"],shuffle=False)
+        data_loader_embedding = DataLoader(dataset=dataset_embedding,batch_size=config["batch_size"],shuffle=True)
     else:
         if supervised:
             dataset_embedding = CustomDataset_Supervised(config_fixed['image_path'])
@@ -305,7 +305,7 @@ def silhouette(X):
         fontsize=14,
         fontweight="bold",
     )
-
+    plt.savefig('./src/resources/Images/Silhouette_Analysis')
     plt.show()
 
 
