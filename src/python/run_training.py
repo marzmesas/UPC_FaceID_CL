@@ -66,7 +66,7 @@ def train_epoch(data_loader, modelq, modelk, optimizer, queue, config, config_fi
         #Actualizamos el resnet de las keys
         for θ_k, θ_q in zip(modelk.parameters(), modelq.parameters()):
             θ_k.data.copy_(config["momentum"]*θ_k.data + θ_q.data*(1.0 - config["momentum"]))    
-    return cumu_loss/len(data_loader)
+    return cumu_loss/len(data_loader), queue
 
 def train_model(config, config_fixed, modelq, modelk, optim_state=None):
     
@@ -123,7 +123,7 @@ def train_model(config, config_fixed, modelq, modelk, optim_state=None):
         modelq.train()
         epoch_losses_train=[]
         for epoch in range(config_fixed["epochs"]):
-            loss_train=train_epoch(data_loader, modelq, modelk, optimizer, queue, config, config_fixed)
+            loss_train,queue=train_epoch(data_loader, modelq, modelk, optimizer, queue, config, config_fixed)
             print(f'Epoch {epoch} - Loss: {loss_train}')
             if epoch % config_fixed["checkpoint_interval"] == 0:
                 torch.save({
