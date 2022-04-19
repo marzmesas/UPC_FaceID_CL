@@ -82,11 +82,11 @@ def base_model(pretrained=False, arch='resnet18'):
             pretrained_dict = torch.load('./20180402-114759-vggface2.pt')
             model_dict = model.state_dict()
 
-            # 1. filter out unnecessary keys
+            # 1. Filter out unnecessary keys
             pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
-            # 2. overwrite entries in the existing state dict
+            # 2. Overwrite entries in the existing state dict
             model_dict.update(pretrained_dict) 
-            # 3. load the new state dict
+            # 3. Load the new state dict
             model.load_state_dict(pretrained_dict)
         
         model = nn.Sequential(*list(model.children())[:-5])
@@ -102,7 +102,7 @@ def base_model(pretrained=False, arch='resnet18'):
         model.add_module('added_relu2', nn.ReLU(inplace=True))
         model.add_module('fc3', nn.Linear(50, 25))
 
-        # Congelamos los 10 primeros bloques
+        # Frezze the first 10 layers
         
         ct = 0
         for child in model.children():

@@ -2,7 +2,7 @@ import os
 import cv2
 import numpy as np
 
-def load_images_from_folder(folder): #Devuelve todas las imágenes de una carpeta
+def load_images_from_folder(folder): # Return all the images on a folder
     images = []
     for filename in os.listdir(folder):
         img = cv2.imread(os.path.join(folder,filename))
@@ -36,7 +36,7 @@ def detect_face(frame, net):
         pass
     return frame
 
-#Crear la carpeta nueva
+# Creates a new folder
 
 cropped_folder_path = './Datasets/Cropped-IMGS-2-supervised/'
 if not os.path.exists(cropped_folder_path):
@@ -44,12 +44,12 @@ if not os.path.exists(cropped_folder_path):
 
 def run():
 
-    #Load pretrained face detection model    
+    # Load pretrained face detection model    
     net = cv2.dnn.readNetFromCaffe('./src/python/app/detection_model/deploy.prototxt.txt', './src/python/app/detection_model/res10_300x300_ssd_iter_140000.caffemodel')
 
-    for folder in os.listdir('./Datasets/GTV-Database-UPC'): #loop por todas las carpetas de imágenes
+    for folder in os.listdir('./Datasets/GTV-Database-UPC'): # Loop through all the folders
         folder_path = f'./Datasets/GTV-Database-UPC/{folder}/'
-        imgs = load_images_from_folder(folder_path) #obtener todas las imágenes de una carpeta
+        imgs = load_images_from_folder(folder_path) # Take all the images of a folder 
         ##########################################
         os.mkdir(f'{cropped_folder_path}{folder}')
         #########################################
@@ -68,14 +68,12 @@ def run():
                 image_path = f'{cropped_folder_path}{folder}/{folder}_{cnt:03}.bmp'
                 cv2.imwrite(image_path, detected_face) 
                 cv2.imshow('face', detected_face)
-                k = cv2.waitKey(1) #Se declara una variable con el resultado de llamar a Wait
-                # Key porque mejora sustancialmente el tiempo de ejecución, si no, no se puede ejecutar el if del guardado tan rápido como quiera el usuario hacer click
+                k = cv2.waitKey(1) 
                 print('.', end='')
             
         print(f'completed')
 
-    #delete_images_from_folder(cropped_folder_path,5)##Este método borra todas aquellas imágenes que se guardan sin detección de cara
-                                                    ## Todas estas imágenes son de 4kb, por lo tanto ponemos el threshold en 5.
+    #delete_images_from_folder(cropped_folder_path,5)## This method deletes all the images of not detected faces
     #print('Folder is now clean of empty detections')
 
 if __name__ == "__main__":

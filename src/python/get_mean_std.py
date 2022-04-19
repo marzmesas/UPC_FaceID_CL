@@ -3,7 +3,7 @@ from torchvision import datasets, transforms as T
 import os
 import cv2
 transform = T.ToTensor()
-#dataset = datasets.ImageNet(".", split="train", transform=transform)
+# Dataset = datasets.ImageNet(".", split="train", transform=transform)
 
 path_dir = './Datasets/Cropped-IMGS-2'
 

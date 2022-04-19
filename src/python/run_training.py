@@ -18,22 +18,22 @@ import torch.nn as nn
 
 os.environ['WANDB_MODE'] = 'offline'
 
-#InfoNCE loss function
+# InfoNCE loss function
 def loss_function(q, k, queue, tau):
 
-    # N es el batch size
+    # N is the batch size
     N = q.shape[0]
     
-    # C es la dimensionalidad de las representaciones
+    # C is the dimensionality of the representations 
     C = q.shape[1]
 
-    #Batch matrix multiplication (las query con las keys por los batch)
+    # Batch matrix multiplication (querys x keys for all the batches)
     pos = torch.exp(torch.div(torch.bmm(q.view(N,1,C), k.view(N,C,1)).view(N, 1),tau))
     
-    #Matrix multiplication (las query con la queue acumulada (memory bank))
+    # Matrix multiplication (querys with the accumulated queue (memory bank))
     neg = torch.sum(torch.exp(torch.div(torch.mm(q.view(N,C), torch.t(queue)),tau)), dim=1)
    
-    #Calculamos el denominador de la función de coste
+    # Computation of the denominator of the loss function
     denominator = neg + pos
 
     return torch.mean(-torch.log(torch.div(pos,denominator)))
@@ -44,26 +44,26 @@ def train_epoch(data_loader, modelq, modelk, optimizer, queue, config, config_fi
         optimizer.zero_grad()
         xq, xk = data['image1'], data['image2']
         xq, xk = xq.to(device), xk.to(device)
-        #Obtención de los outputs
+        # Outputs
         q = modelq(xq)
         k = modelk(xk)
         k = k.detach()
-        #Normalización de los vectores (para así calcular el coste, con multiplicación matricial)
+        # Vector normalization
         q = torch.div(q,torch.norm(q,dim=1).reshape(-1,1))
         k = torch.div(k,torch.norm(k,dim=1).reshape(-1,1))
-        #Obtención del coste
+        # Loss
         loss = loss_function(q, k, queue, config_fixed["tau"])
         cumu_loss+=loss.item()
-        #Backpropagation
+        # Backpropagation
         loss.backward()
-        #Actualización de los weights del resnet de las querys
+        # Update of the weights for the query
         optimizer.step()
         queue = torch.cat((queue,k), 0) 
-        #Si el tamaño de nuestro memory bank (queue) es mayor a 2000, eliminamos el último batch (batch size=16)
+        # If the size of our memory bank (queue) is bigger than the K value, the last batch is removed
         if queue.shape[0] > config["K"]:
             queue = queue[config["batch_size"]:,:]
 
-        #Actualizamos el resnet de las keys
+        # Updating the resnet of the keys
         for θ_k, θ_q in zip(modelk.parameters(), modelq.parameters()):
             θ_k.data.copy_(config["momentum"]*θ_k.data + θ_q.data*(1.0 - config["momentum"]))    
     return cumu_loss/len(data_loader), queue
@@ -73,7 +73,7 @@ def train_model(config, config_fixed, modelq, modelk, optim_state=None):
     # Initialize a new wandb run
     with wandb.init(config=config):
          # If called by wandb.agent, as below,
-        # this config will be set by Sweep Controller
+        # This config will be set by Sweep Controller
         config = wandb.config
 
         optimizer = optim.SGD(modelq.parameters(), lr=config["lr"], momentum=config_fixed["momentum_optimizer"], weight_decay=config_fixed["weight_decay"])
@@ -119,7 +119,7 @@ def train_model(config, config_fixed, modelq, modelk, optim_state=None):
                 if flag == 1:
                     break
 
-        #TRAINING
+        # TRAINING
         modelq.train()
         epoch_losses_train=[]
         for epoch in range(config_fixed["epochs"]):
@@ -148,18 +148,18 @@ def train_epoch_supervised(train_loader,network_contrastive,Linear_model,optimiz
     y_actual = data["label"]
     y_actual = torch.tensor([Classes_Map[i] for i in y_actual])
     y_actual =y_actual.to(device)
-    #Obtención de los outputs
+    # Outputs
     with torch.no_grad():
       y_resnetq = network_contrastive(image)
     y_predicted = Linear_model(y_resnetq)
     loss = criterion(y_predicted,y_actual)
-    #Backpropagation
+    # Backpropagation
     loss.backward()
     losses_train.append(loss.data.item())
     acc_topk=topkcorrect_predictions(y_predicted,y_actual,(K,))
     acc = (acc_topk[0].item()*100)/data["image1"].shape[0]
     accs_train.append(acc)
-    #Actualización de los weights del resnet de las querys
+    # Updating of the weights in the resnet of the querys
     optimizer.step()
     if i % 8 == 0:
       print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tAcc: {:.1f}'.format(

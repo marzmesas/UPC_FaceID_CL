@@ -6,7 +6,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 torch.cuda.empty_cache()
-
+# Function that logs latents of the images (training and test dataset)
 def log_embeddings(model, data_loader, testing=False, image_test = None,show_latents=False):
     
   list_latent = []
@@ -50,7 +50,7 @@ def log_embeddings(model, data_loader, testing=False, image_test = None,show_lat
     path = [item for sublist in list_path for item in sublist]
   else:
     path=[]
-  #Guardamos los embeddings para el tensorboard y su representación con PCA,T-SNE
+  # Embeddings are saved for tensoboard representation
   if show_latents:
     writer.add_embedding(latent,metadata=labels, label_img=images)
 

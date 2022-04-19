@@ -17,74 +17,75 @@ from torch.utils.tensorboard import SummaryWriter
 import glob
 import matplotlib.pyplot as plt
 
-#Declaramos device para GPU
+#Declaration of the device for the GPU
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 torch.cuda.empty_cache()
 
 
-############# - Entorno a definir ####################
+############# - Environment ####################
 
-# Tipo entrenamiendo
+# Type of training
 # supervised --> True
 # self-supervised --> False
-# supervised_MLP (con un clasificador --> True, sin clasificador, KMEANS, KNN --> False)
+# supervised_MLP (with a classifier --> True, without one (KMEANS, KNN) --> False)
 supervised = True
 supervised_MLP = False
-plot_MLP = True  #Variable booleana para plotear la loss en el supervised contrastive MLP
-plot_contrastive=True #Variable booleana para plotear la contrastive loss
-#Variable booleana para comprobar la accuracy del dataset de test mientras entrenas (SUPERVISED WITH MLP)
+plot_MLP = True  # Boolean to plot the loss in supervised contrastive MLP
+plot_contrastive=True # Boolean to plot the contrastive loss
+# Boolean to check the accuracy of the test dataset while training (Only in supervised contrastive MLP)
 testing_training = True
 path_img_training="./Datasets/Cropped-IMGS-3-supervised"
 path_img_testing ="./Datasets/Cropped-IMGS-3-supervised"
 path_model="./src/python/saved_models"
 path_checkpoint="./src/resources/checkpoints"
-# Variable para entrenar o para evaluar
+# Boolean to train
 training = False
-# Variable para optimizar
+# Boolean to optimize
 optim= False
-# Variable para testear predicciones
+# Boolean to test the predictions
 testing = True
 
-# fichero checkpoint para cargar en entrenamiento
+# Checkpoint file to load for training 
 pretrained_checkpoint_file =  'None'
-# fichero para cargar pesos pre-entrenados
+# File to load pre-trained weights
 pretrained_model_file =  'None'
 
-# fichero modelo de salida de entrenamiento contrastive 
+# File to save the trained contrastive model 
 output_model_file = 'model_Contrastive.pt'
-# fichero modelo de test contrastive
+# File to save the test contrastive model 
 test_model_file = output_model_file
-# fichero modelo de salida de entrenamiento MLP (para el supervised)
+# File to save the trained MLP model
 output_model_file_MLP = 'model_MLP.pt'
-# fichero modelo de test MLP (para el supervised)
+# File to save the test MLP model 
 test_model_file_MLP = output_model_file_MLP
 
-# fichero checkpoint de test
+# Checkpoint file to test
 test_checkpoint_file = 'None'
 
-# available architectures
-# - resnet18
-# - resnet50
-# - resnet101
-# - inception resnet v1
-# - vgg16
+# Available architectures:
+# - Resnet18
+# - Resnet50
+# - Resnet101
+# - Inception resnet v1
+# - Vgg16
+
 arch='resnet18'
 
-# Tamaño de la queue
+# Size of the queue (for the MOCOV2 contrastive)
 K=350
 batch_size=32
 epochs_contrastive=2000
 epochs_supervisedMLP=15
-# Intervalo para guardar checkpoints
+# Interval to save the checkpoints
 checkpoint_interval=1000
 
 ######################################################
 
-# Conjunto de parámetros fijados
+# Fixed parameters:
 config_fixed={
-          # Path imágenes training
+          # Path of the training dataset
           "image_path": path_img_training,
-          # Path imágenes testing
+          # Path of the test dataset
           "image_path_test": path_img_testing,
           "tau": 0.05,
           "epochs":epochs_contrastive,
@@ -96,23 +97,23 @@ config_fixed={
           "supervised_MLP":supervised_MLP
       }
 
-# Definimos los modelos
+# Model definition
 modelq = base_model(pretrained=False, arch=arch).to(device)
-# Cargarmos checkpoint si existe
+# Load checkpoints if they exist
 if os.path.exists(os.path.join(path_checkpoint, pretrained_checkpoint_file)):
   checkpoint = torch.load(os.path.join(path_checkpoint, pretrained_checkpoint_file), map_location=device)
   modelq.load_state_dict(checkpoint['model_state_dict'])
   optim_state=checkpoint['optimizer_state_dict']
 else:
   optim_state=None
-# Cargamos pesos pre-entrenados si existe
+# Load pre-trained weights if they exist
 if os.path.exists(os.path.join(path_model, pretrained_model_file)):  
   modelq.load_state_dict(torch.load(os.path.join(path_model, pretrained_model_file),map_location=device))
-# Copiamos el encoder-q a encoder-k
+# Copy the encoder-q to the encoder-k
 modelk = copy.deepcopy(modelq)
 
-# Entrenamos el modelo
-# Si no optimizamos fijamos el conjunto de parámetros que utilizaremos más adelante para optimizar
+# Model training:
+# Fixed parameters if optimize is set to False
 if not optim:
   config={}
   config['lr']= 0.001
@@ -123,21 +124,21 @@ if not optim:
   if training:
     if supervised:
       if supervised_MLP:
-        print("Entrenamiento basado en supervised contrastive loss con un clasificador MLP:")
+        print("Training based on a supervised contrastive loss with MLP classifier:")
       else:
-        print("Entrenamiento basado en supervised contrastive loss sin clasificador:")
+        print("Training based on a supervised contrastive loss without classifier:")
     else:
-      print("Entrenamiento basado en self-supervised contrastive loss:")
-    # Entreno
+      print("Training based on a self-supervised contrastive loss:")
+    # Training
     trained_modelq, trained_modelk,epoch_losses=train_model(config, config_fixed, modelq, modelk, optim_state)
 
-    # Guardamos modelos entrenados
+    # Save trained contrastive model
     torch.save(trained_modelq.state_dict(), os.path.join(path_model, output_model_file))
 
-    # Graficamos los embeddings en Tensorboard del dataset de training (opcional)
+    # Compute the embeddings and plot it on Tensorboard for the training dataset (with the trained model)
     compute_embeddings(modelq=trained_modelq, config=config, config_fixed=config_fixed,testing=True, image_test=None, supervised=supervised, inception=False,show_latents=True,show_latents_test=False)
     
-    #Ploteamos loss contrastive
+    #Plot the contrastive loss
     if plot_contrastive:
       plt.figure(figsize=(10, 10))
       plt.plot(epoch_losses)
@@ -149,7 +150,7 @@ if not optim:
       model_MLP = supervised_model().to(device)
       metrics,trained_modelMLP = train_supervised_model(model_MLP,trained_modelq,config_fixed,testing_training,K=1)
       torch.save(trained_modelMLP.state_dict(), os.path.join(path_model, output_model_file_MLP))
-      #Ploteamos loss y accuracy MLP en supervised contrastive
+      #Plot loss and accuracy in a contrastive supervised MLP model
       if plot_MLP:
         plt.figure(figsize=(10, 8))
         plt.subplot(2,1,1)
@@ -173,7 +174,7 @@ if not optim:
     loaded=False
     trained_modelq = base_model(pretrained=False, arch=arch)
     trained_modelMLP = supervised_model()
-    # Cargamos 
+    # LOAD: 
     if supervised_MLP==False or supervised==False:
       if os.path.exists(os.path.join(path_model, test_model_file)):
         trained_modelq.load_state_dict(torch.load(os.path.join(path_model, test_model_file),map_location=device))
@@ -196,11 +197,11 @@ if not optim:
       loaded = loaded1 and loaded2
 
     if loaded: 
-      #Te extrae los latents del dataset de test para representarlos en el Tensorboard (despues de haber entrenado el modelo contrastive)
+      # Compute the latents of the test dataset to represent them on tensorboard (with the trained model)
       compute_embeddings(modelq=trained_modelq, config=config, config_fixed=config_fixed,testing=False, image_test=None, supervised=supervised, inception=False,show_latents=True,show_latents_test=True)   
 
       if supervised_MLP==False or supervised==False:
-        #Te extrae los latents del dataset de training para calcular KMEANS y KNN (después de haber entrenado el modelo de contrastive)
+        # Compute the latents of the training dataset to compute the KMEANS and the KNearest Neighbors 
         latents, labels, images, path, trained_modelq = compute_embeddings(modelq=trained_modelq, config=config, config_fixed=config_fixed, testing=testing, image_test=None, supervised=True, inception=False,show_latents=False,show_latents_test=False)
         test_names = sorted(glob.glob(config_fixed['image_path_test']+'/*/*.bmp',recursive=True))
         print('K-MEANS METHOD')
@@ -262,7 +263,7 @@ else:
 
   sweep_id = wandb.sweep(sweep_config)
 
-  count = 10 # number of runs to execute
+  count = 10 # Number of runs to execute
   config=None
   wandb.agent(sweep_id, partial(train_model, config, config_fixed, modelq, modelk), count=count)
 

@@ -7,7 +7,7 @@ import cv2
 import torch
 import glob
 
-#Clase de custom dataset para contrastive supervised
+# Custom dataset class for contrastive supervised model
 class CustomDataset_Supervised(Dataset):
   def __init__(self, path, transform=transforms.Compose([transforms.ToPILImage(), transforms.Resize((160,160)), transforms.ToTensor()])):
     self.list_files = [[join(path, x, y) for y in os.listdir(join(path, x))] for x in os.listdir(path)]
@@ -16,7 +16,7 @@ class CustomDataset_Supervised(Dataset):
   def __len__(self):
     return len(self.list_files)
   
-  #Devolver 2 imágenes y los labels
+  # Return 2 images and labels
   def __getitem__(self, idx):
     imgs_paths = sample(self.list_files[idx], 2)
     img_0 = cv2.imread(imgs_paths[0])
@@ -30,7 +30,7 @@ class CustomDataset_Supervised(Dataset):
 
     return {'image0': img_0, 'image1': img_0, 'image2': img_1, 'label': idx}
 
-#clase customdataset para contrastive unsupervised
+# Custom dataset class for unsupervised model
 class CustomDataset_Unsupervised(Dataset):
   def __init__(self, path, transform=transforms.Compose([transforms.ToPILImage(), transforms.Resize((160,160)), transforms.ToTensor()])):
     self.path = path
@@ -46,7 +46,7 @@ class CustomDataset_Unsupervised(Dataset):
       transforms.ToTensor()])
       
     '''
-      Otras transformaciones probadas
+      #Other tested transformations
       transforms.RandomResizedCrop(size=(160, 160)),
       transforms.RandomPerspective(distortion_scale=0.5, p=1.0),
       transforms.RandomEqualize(),
@@ -67,7 +67,7 @@ class CustomDataset_Unsupervised(Dataset):
     img_2 = self.pair_transformations(img_0)
 
     '''
-    # Código para debugar
+    #Extra code
     img1=np.ascontiguousarray((img_1.permute(1, 2, 0).numpy()*255), dtype=np.uint8)
     img2=np.ascontiguousarray((img_2.permute(1, 2, 0).numpy()*255), dtype=np.uint8)
     image_stack = np.hstack((img1, img2))
@@ -78,7 +78,7 @@ class CustomDataset_Unsupervised(Dataset):
 
     return {'image0':img_0, 'image1': img_1, 'image2': img_2, 'label': idx}
 
-#clase customdataset para testing
+# Custom dataset class for testing
 class CustomDataset_Testing(Dataset):
   def __init__(self, path, transform=transforms.Compose([transforms.ToPILImage(), transforms.Resize((160,160)), transforms.ToTensor()])):
     self.list_files = sorted(glob.glob(path+'/*/*.bmp',recursive=True))
@@ -89,12 +89,12 @@ class CustomDataset_Testing(Dataset):
 
   def __len__(self):
     return len(self.list_files)
-  #Devolver 2 imágenes y los labels
+  # Return 2 images and labels
   def __getitem__(self, idx):
     if torch.is_tensor(idx):
       idx = idx.tolist()
     img_name = self.list_files[idx]
-    #image = Image.open(img_name).convert('RGB')
+    # image = Image.open(img_name).convert('RGB')
     image = cv2.imread(img_name)
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     label = int(self.labels[idx][-2:])
@@ -102,7 +102,7 @@ class CustomDataset_Testing(Dataset):
       img_0 = self.transform(image)
     return {'image0': img_0,'label': label, 'path': img_name}
 
-#clase customadatset para training y testing del supervised con la MLP
+# Class custom dataset for testing and training for supervised contrastive + MLP models
 class CustomDataset_supervised_Testing(Dataset):
   def __init__(self, filenames,labels, transform=None):
     self.list_files = filenames
@@ -111,7 +111,7 @@ class CustomDataset_supervised_Testing(Dataset):
 
   def __len__(self):
     return len(self.list_files)
-  #Devolver 2 imágenes y los labels
+  # Return 2 images and label
   def __getitem__(self, idx):
     if torch.is_tensor(idx):
       idx = idx.tolist()

@@ -17,12 +17,12 @@ import torch.nn.functional as F
 import numpy as np
 import matplotlib.pyplot as plt
 
-#Declaramos device para GPU
+# Declaration of the device for the GPU 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 from torch.utils.tensorboard import SummaryWriter
 torch.cuda.empty_cache()
 
-#Clase de custom dataset
+# Class of the custom dataset
 class CustomDataset(Dataset):
   def __init__(self, filenames,labels, transform=None):
     self.list_files = filenames
@@ -31,7 +31,7 @@ class CustomDataset(Dataset):
 
   def __len__(self):
     return len(self.list_files)
-  #Devolver 2 imágenes y los labels
+  # Return 2 images and labels
   def __getitem__(self, idx):
     if torch.is_tensor(idx):
       idx = idx.tolist()
@@ -41,17 +41,17 @@ class CustomDataset(Dataset):
     if self.transform:
       img_0 = self.transform(image)
     return {'image1': img_0,'label': label}
-
+# Get a mean of a list
 def get_mean_of_list(L):
     return sum(L) / len(L)
-
+# Topk predictions for the accuracy 
 def topkcorrect_predictions (predicted_batch,label_batch,topk=(1,)):
   maxk = max(topk)
   batch_size = label_batch.size(0)
   _, pred = predicted_batch.topk(k=maxk, dim=1)
   pred = pred.t() 
   target_reshaped = label_batch.view(1, -1).expand_as(pred)  # [B] -> [B, 1] -> [maxk, B]
-  # compare every topk's model prediction with the ground truth & give credit if any matches the ground truth
+  # Compare every topk's model prediction with the ground truth & give credit if any matches the ground truth
   correct = (pred == target_reshaped)
   list_topk_accs = []
   for k in topk:
@@ -75,13 +75,13 @@ def train_epoch(train_loader,model,optimizer,criterion,epoch):
     y_actual =y_actual.to(device)
     y_predicted = model(image)
     loss = criterion(y_predicted,y_actual)
-    #Backpropagation
+    # Backpropagation
     loss.backward()
     losses_train.append(loss.data.item())
     acc_topk=topkcorrect_predictions(y_predicted,y_actual,(K,))
     acc = (acc_topk[0].item()*100)/data["image1"].shape[0]
     accs_train.append(acc)
-    #Actualización de los weights del resnet de las querys
+    # Update the weights of the resnet
     optimizer.step()
     if i % 8 == 0:
       print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tAcc: {:.1f}'.format(
@@ -110,7 +110,7 @@ def test_epoch(test_loader,model,criterion):
   print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(test_loss, acc_test, len(test_loader.dataset), test_acc,))
   return test_loss,test_acc
 
-#MODELO CON RESNET18
+# MODEL WITH RESNET18
 resnet = models.resnet18(pretrained=False).to(device)
 
 classifier = nn.Sequential(OrderedDict([
@@ -125,7 +125,7 @@ classifier = nn.Sequential(OrderedDict([
 resnet.fc = classifier.to(device)
 transform = transforms.Compose([transforms.ToTensor(), transforms.CenterCrop((240, 240))])
 
-#TRAINING
+# TRAINING
 
 root_folder_train = r'./Datasets/Cropped-IMGS-2-supervised-train'
 train_names = sorted(glob.glob(root_folder_train+'/*/*.bmp',recursive=True))
@@ -151,7 +151,7 @@ logdir = os.path.join("logs", datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
 writer = SummaryWriter(log_dir=logdir) 
 
 
-#TESTING
+# TESTING
 root_folder_test = r'./Datasets/Cropped-IMGS-2-supervised-test'
 test_names = sorted(glob.glob(root_folder_test+'/*/*.bmp',recursive=True))
 names_test = random.sample(test_names, len(test_names))
@@ -160,7 +160,7 @@ dataset_test = CustomDataset(names_test,labels_test,transform)
 dataloader_test = DataLoader(dataset_test,batch_size=16,shuffle=True)
 
 
-#TOPK PARAMETRO CONTROL
+# TOPK PARAMETER
 K=5
 plot=True
 #---------------------

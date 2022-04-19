@@ -14,22 +14,22 @@ capture=0
 signup=0
 switch=1
 
-#make shots directory to save pics
+# Make shots directory to save pics
 try:
     os.mkdir('./shots')
 except OSError as error:
     pass
 
-#Load pretrained face detection model    
+# Load pretrained face detection model    
 net = cv2.dnn.readNetFromCaffe('./src/python/app/detection_model/deploy.prototxt.txt', './src/python/app/detection_model/res10_300x300_ssd_iter_140000.caffemodel')
 
-#instatiate flask app  
+# Instatiate flask app  
 app = Flask(__name__, template_folder='./src/python/app/templates')
 
-#Load unsupervised model
+# Load unsupervised model
 trained_modelq = base_model(pretrained=False)
 trained_modelq.load_state_dict(torch.load(os.path.join('./src/python/saved_models', 'modelq.pt'),map_location=torch.device('cpu')))
-#Load latents
+# Load latents
 latents = torch.load('./src/python/saved_models/latents.pt')
 
 camera = cv2.VideoCapture(0)
@@ -58,7 +58,7 @@ def detect_face(frame):
         pass
     return frame
  
-def gen_frames():  # generate frame by frame from camera
+def gen_frames():  # Generate frame by frame from camera
     global out, login,rec_frame, capture, signup
     while True:
         success, frame = camera.read() 
