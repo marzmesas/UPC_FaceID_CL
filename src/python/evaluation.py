@@ -49,18 +49,17 @@ def compute_embeddings(modelq, config, config_fixed, testing=False, image_test=N
     if show_latents_test:
         dataset_embedding = CustomDataset_Testing(config_fixed['image_path_test'])
         data_loader_embedding = DataLoader(dataset=dataset_embedding,batch_size=config["batch_size"],shuffle=False)
-    #Calculamos los embeddings
-    # Sacamos tambień los labels y las imágenes para graficar
+    # Get embeddings
+    # We get the labels, latents and images for graphic purposes
     latents, labels, images, path=log_embeddings(modelq, data_loader_embedding, testing, image_test,show_latents)
 
     return latents, labels, images, path, modelq
 
 def graph_embeddings(latents, labels):
 
-    # Sacamos gráficas UMAP y PCA. Utilizamos los labels para pintar de distintos colores y ver
-    # que estamos haciendo bien los clústers
+    # UMAP and PCA graphics.
 
-    #UMAP
+    # UMAP
     UMAP_fig=plt.figure(1, figsize=(8, 6))
     reducer = umap.UMAP()
     standardized_data = StandardScaler().fit_transform(latents.numpy())
@@ -78,7 +77,7 @@ def graph_embeddings(latents, labels):
     plt.title('UMAP projection of the latents dataset - Estimated number of clusters: %d' % n_clusters_)
     plt.show()
 
-    #PCA 
+    # PCA 
     PCA_fig = plt.figure(1, figsize=(8, 6))
     ax = Axes3D(PCA_fig, elev=-150, azim=110)
     pca=PCA(n_components=3)
@@ -112,8 +111,6 @@ def prediction(image, modelq, latents, num_neighboors=1):
     modelq.eval()
     modelq.to(device)
 
-    #modelq = nn.Sequential(*list(modelq.children())[:-5])
-
     if len(nn.Sequential(*list(modelq.fc.children()))) == 5:
         modelq.fc = nn.Sequential(*list(modelq.fc.children())[:-5])
 
@@ -122,21 +119,21 @@ def prediction(image, modelq, latents, num_neighboors=1):
     latent_sample = modelq(tensor_sample)
     latent_sample = latent_sample.to('cpu').detach().numpy()
     
-    # Utilizamos OPTICS para sacar el número de clusters para utilizar posteriormente con el kmeans
-    # Utilizamos OPTICS frente al DBSCAN porque sólo hay el parámetro min_samples
-    #clustering = OPTICS(min_samples=20).fit(latents)
-    #n_clusters_=len(set(clustering.labels_))
+    # OPTICS is used to obtain the Nº of clusters to use them with KMEANS method 
+    # OPTICS is used and not DBSCAN because it only needs 1 parameter to optimize min_samples 
+    # Clustering = OPTICS(min_samples=20).fit(latents)
+    # n_clusters_=len(set(clustering.labels_))
     kmeans = KMeans(n_clusters=44, random_state=0).fit(latents)
-    # Predecimos el cluster más próximo
+    # We get the prediction of the closest cluster
     label_closest_cluster = kmeans.predict(latent_sample.astype(float))
     label_closest_cluster=label_closest_cluster[0]
-    # Sacamos los índices de los elementos que forman el cluster
+    # Indexs of the elements that forms the cluster 
     idx = np.where(kmeans.labels_==label_closest_cluster)
-    # Tomamos num_neighboors de los elementos que forman el cluster
+    # Take num_neighboors of the elements that forms the cluster
     idx=idx[0][0:num_neighboors]
-    # Recuperamos los centroids de los clusters
+    # Restore the centroids of the clusters
     centroids = kmeans.cluster_centers_
-    # Calculamos la distancia entre la muestra y el centroid más cercano
+    # Obtain the distance between the sample and the closest cluster
     distance_from_closest_centroid = distance.euclidean(centroids[label_closest_cluster], latent_sample)
 
     return distance_from_closest_centroid, idx
@@ -146,8 +143,6 @@ def accuracy(latents,modelq,list_files_test,topk,nombres,method):
   accuracy=0
 
   kmeans = KMeans(n_clusters=44, random_state=0).fit(latents)
-  score = silhouette_score(latents, kmeans.labels_, metric='euclidean')
-  print('Silhouetter Score: %.3f' % score)
   neigh = NearestNeighbors(n_neighbors=topk+1)
   neigh.fit(latents)
 
@@ -158,18 +153,17 @@ def accuracy(latents,modelq,list_files_test,topk,nombres,method):
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     nombre_groundtruth = list_files_test[i]
     nombre_groundtruth=nombre_groundtruth.split('/')[-2][-2:]
-    #print("El nombre real es: "+str(nombre_groundtruth))
     res = transform(img).to(device)
     tensor_sample = res.unsqueeze(0)
     latent_sample = modelq(tensor_sample)
     latent_sample = latent_sample.to('cpu').detach().numpy()
     if method =='kmeans':
-    # Predecimos el cluster más próximo
+    # Predict the closest cluster
         label_closest_cluster = kmeans.predict(latent_sample.astype(float))
         label_closest_cluster=label_closest_cluster[0]
-        # Sacamos los índices de los elementos que forman el cluster
+        # Obtain the index of the elements that forms the cluster
         idx = np.where(kmeans.labels_==label_closest_cluster)
-        # Tomamos num_neighboors de los elementos que forman el cluster
+        # Take num_neighboors of the elements that forms the cluster
         idx=idx[0][0:topk]
         list_labels = (nombres[idx]).tolist()
     elif method == 'kneighboors':
@@ -180,7 +174,6 @@ def accuracy(latents,modelq,list_files_test,topk,nombres,method):
         
     for i,_ in enumerate(list_labels):  
       nombre_prediccion = list_labels[i]
-      #print("El nombre predicho es: "+str(nombre_prediccion))
       if nombre_prediccion == int((nombre_groundtruth)):
         accuracy+=1
         break
@@ -316,7 +309,7 @@ def topkcorrect_predictions (predicted_batch,label_batch,topk=(1,)):
   _, pred = predicted_batch.topk(k=maxk, dim=1)
   pred = pred.t() 
   target_reshaped = label_batch.view(1, -1).expand_as(pred)  # [B] -> [B, 1] -> [maxk, B]
-  # compare every topk's model prediction with the ground truth & give credit if any matches the ground truth
+  # Compare every topk's model prediction with the ground truth & give credit if any matches the ground truth
   correct = (pred == target_reshaped)
   list_topk_accs = []
   for k in topk:
