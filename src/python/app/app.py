@@ -16,14 +16,21 @@ signup=0
 switch=1
 
 # Make shots directory to save pics
-try:
-    os.mkdir('./shots')
-except OSError as error:
-    pass
+# try:
+#     os.mkdir('./shots')
+# except OSError as error:
+#     pass
+
+
+count = 0
+for f in os.listdir("../../../Datasets/Cropped-IMGS-1-supervised"): ##Get Number of different people for signup functionality
+    count+=1
+print(count)
 
 #Load dataset path
-dataset_path = "../../../Datasets/cropped-imgs1-supervised-test"
+dataset_path = "../../../Datasets/Cropped-IMGS-1-supervised"
 config_fixed['image_path'] = dataset_path
+
 
 # Load pretrained face detection model    
 net = cv2.dnn.readNetFromCaffe('./detection_model/deploy.prototxt.txt', './detection_model/res10_300x300_ssd_iter_140000.caffemodel')
@@ -67,7 +74,7 @@ def take_picture(count, img, folder_path):
     print('Saved image: ','shot{}.jpg'.format(count))
  
 def gen_frames():  # Generate frame by frame from camera
-    global out, login,rec_frame, capture, signup
+    global out, login,rec_frame, capture, signup, pictures
     while True:
         success, frame = camera.read() 
         if success:                
@@ -86,14 +93,15 @@ def gen_frames():  # Generate frame by frame from camera
                 #     print('Login denied')
                 pass
             if(signup):
-
-                count = 44
-                new_username = f'ID{count+1}'
-                new_folder = os.mkdir(str.join(dataset_path+f"/{new_username}"))
+                signup = 0
                 pictures = 0
+                new_username = f'ID{count+1}'
+                os.mkdir(dataset_path+f"/{new_username}")
+                new_folder_path = dataset_path+f"/{new_username}"
                 while pictures <3:
-                    take_picture(pictures,frame, new_folder)
+                    take_picture(pictures,frame,new_folder_path)
                     pictures+=1
+                signup=0
 
             try:
                 ret, buffer = cv2.imencode('.jpg', cv2.flip(frame,1))
