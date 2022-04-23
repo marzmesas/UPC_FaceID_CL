@@ -2,10 +2,11 @@ from flask import Flask, render_template, Response, request
 import cv2
 import datetime, time
 import os, sys
-sys.path.append('../')
+sys.path.append('..')
 import numpy as np
-from evaluation import prediction
+from evaluation import prediction, compute_embeddings
 from model import base_model
+from main import config, config_fixed
 import torch
 
 global login,rec_frame, switch, capture, out, signup 
@@ -20,18 +21,21 @@ try:
 except OSError as error:
     pass
 
+#Load dataset path
+dataset_path = "../../../Datasets/cropped-imgs1-supervised-test"
+config_fixed['image_path'] = dataset_path
+
 # Load pretrained face detection model    
-net = cv2.dnn.readNetFromCaffe('./src/python/app/detection_model/deploy.prototxt.txt', './src/python/app/detection_model/res10_300x300_ssd_iter_140000.caffemodel')
+net = cv2.dnn.readNetFromCaffe('./detection_model/deploy.prototxt.txt', './detection_model/res10_300x300_ssd_iter_140000.caffemodel')
 
 # Instatiate flask app  
-app = Flask(__name__, template_folder='./src/python/app/templates')
+app = Flask(__name__, template_folder='./templates')
 
 # Load unsupervised model
 trained_modelq = base_model(pretrained=False)
-trained_modelq.load_state_dict(torch.load(os.path.join('./src/python/saved_models', 'modelq.pt'),map_location=torch.device('cpu')))
+trained_modelq.load_state_dict(torch.load('../saved_models/model_Contrastive.pt',map_location=torch.device('cpu')))
 # Load latents
-latents = torch.load('./src/python/saved_models/latents.pt')
-
+# latents, labels, _ , _ , _ = compute_embeddings(trained_modelq,config,config_fixed)
 camera = cv2.VideoCapture(0)
 
 def detect_face(frame):
@@ -57,6 +61,10 @@ def detect_face(frame):
     except Exception as e:
         pass
     return frame
+
+def take_picture(count, img, folder_path):
+    cv2.imwrite(folder_path+'/shot{}.jpg'.format(count),img)
+    print('Saved image: ','shot{}.jpg'.format(count))
  
 def gen_frames():  # Generate frame by frame from camera
     global out, login,rec_frame, capture, signup
@@ -66,18 +74,27 @@ def gen_frames():  # Generate frame by frame from camera
             frame= detect_face(frame)   
             if(capture):
                 capture=0
-                now = datetime.datetime.now()
-                p = os.path.sep.join(['shots', "shot_{}.png".format(str(now).replace(":",''))])
-                cv2.imwrite(p, frame)
+                # now = datetime.datetime.now()
+                # p = os.path.sep.join(['shots', "shot_{}.png".format(str(now).replace(":",''))])
+                # cv2.imwrite(p, frame)
             if(login):
-                login=0
-                dist, idxs = prediction(frame, trained_modelq, latents, 1)
-                if dist < 0.3:
-                    print('You are logged')
-                else:
-                    print('Login denied')
-            if(signup):
+                # login=0
+                # dist, list_labels = prediction(frame, trained_modelq, latents, 3 , labels)
+                # if dist < 0.3:
+                #     print('You are logged')
+                # else:
+                #     print('Login denied')
                 pass
+            if(signup):
+
+                count = 44
+                new_username = f'ID{count+1}'
+                new_folder = os.mkdir(str.join(dataset_path+f"/{new_username}"))
+                pictures = 0
+                while pictures <3:
+                    take_picture(pictures,frame, new_folder)
+                    pictures+=1
+
             try:
                 ret, buffer = cv2.imencode('.jpg', cv2.flip(frame,1))
                 frame = buffer.tobytes()

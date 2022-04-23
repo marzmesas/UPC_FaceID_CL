@@ -105,7 +105,7 @@ def graph_embeddings(latents, labels):
     ax.w_zaxis.set_ticklabels([])
     plt.pause(0)
 
-def prediction(image, modelq, latents, num_neighboors=1):
+def prediction(image, modelq, latents, topk, labels):
         
     transform = transforms.Compose([transforms.ToPILImage(), transforms.Resize((160,160)), transforms.ToTensor()])
     modelq.eval()
@@ -123,20 +123,34 @@ def prediction(image, modelq, latents, num_neighboors=1):
     # OPTICS is used and not DBSCAN because it only needs 1 parameter to optimize min_samples 
     # Clustering = OPTICS(min_samples=20).fit(latents)
     # n_clusters_=len(set(clustering.labels_))
-    kmeans = KMeans(n_clusters=44, random_state=0).fit(latents)
-    # We get the prediction of the closest cluster
-    label_closest_cluster = kmeans.predict(latent_sample.astype(float))
-    label_closest_cluster=label_closest_cluster[0]
-    # Indexs of the elements that forms the cluster 
-    idx = np.where(kmeans.labels_==label_closest_cluster)
-    # Take num_neighboors of the elements that forms the cluster
-    idx=idx[0][0:num_neighboors]
-    # Restore the centroids of the clusters
-    centroids = kmeans.cluster_centers_
-    # Obtain the distance between the sample and the closest cluster
-    distance_from_closest_centroid = distance.euclidean(centroids[label_closest_cluster], latent_sample)
+    # kmeans = KMeans(n_clusters=44, random_state=0).fit(latents)
+    # # We get the prediction of the closest cluster
+    # label_closest_cluster = kmeans.predict(latent_sample.astype(float))
+    # label_closest_cluster=label_closest_cluster[0]
+    # # Indexs of the elements that forms the cluster 
+    # idx = np.where(kmeans.labels_==label_closest_cluster)
+    # # Take num_neighboors of the elements that forms the cluster
+    # idx=idx[0][0:num_neighboors]
+    # # Restore the centroids of the clusters
+    # centroids = kmeans.cluster_centers_
+    # # Obtain the distance between the sample and the closest cluster
+    # distance_from_closest_centroid = distance.euclidean(centroids[label_closest_cluster], latent_sample)
+    
+    neigh = NearestNeighbors(n_neighbors=topk+1)
+    neigh.fit(latents)
+    dist, idx = neigh.kneighbors(latent_sample)
+    idxs = idx[0]
+    idxs=idxs[1:]
+    list_labels = (labels[idxs]).tolist()
+    # for i,_ in enumerate(list_labels):  
+    #   nombre_prediccion = list_labels[i]
+    #   if nombre_prediccion == int((nombre_groundtruth)):
+    #     accuracy+=1
+    #     break
+  
+    # accuracy = (accuracy/len(list_files_test))*100    
+    return dist, list_labels
 
-    return distance_from_closest_centroid, idx
 
 def accuracy(latents,modelq,list_files_test,topk,nombres,method):
   topk = topk
