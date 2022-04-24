@@ -94,7 +94,7 @@ def gen_frames():  # Generate frame by frame from camera
                 dist,labels_predichas=prediction(image=frame,modelq=trained_modelq,latents=latents,topk=3,labels=labels)
                 dist = round(dist,2)
                 print(dist)
-                if dist < 4.5:
+                if dist < 5:
                     log_correct=True
                     print('You are logged')
                 else:
