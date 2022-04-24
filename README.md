@@ -404,13 +404,17 @@ Other aspects, such as profiles, wearing glasses, etc. have also been priority a
 
 One of the purposes for the development of this project and on which it has been based, was to develop an application for face recognition, imitating the typical Face-ID that all mobile phones have today.
 
-The original idea was to be able to develop this application through a model based on "self-supervised learning" in order to have the advantages of this type of learning, especially the fact that it does not need labeled data. However, as has been observed throughout the experiments carried out, due to our small dataset and the lack of computational power, the results obtained with this model are quite far from those that would be needed to be able to implement it in an environment productive.
+The original idea was to be able to develop this application through a model based on "self-supervised learning" in order to have the advantages of this type of learning, especially the fact that it does not need labeled data. However, as has been observed throughout the experiments carried out, due to our small dataset and the lack of computational power, the results obtained with this model are quite far from those that would be needed to be able to implement it in a productive environment.
 
 That is why the application has been implemented with the "supervised contrastive learning" model, which has had relatively good results using the "Cropped-IMGS-2" dataset. In addition, it has been decided to use this model, since it is the closest to the model based on "self-supervised learning", which only differs in the type of images passed to the model and their transformations.
 
 ![image](./ReadMe_Resources/FACEID_APP.png)
-
-
+      
+![image](./ReadMe_Resources/Latents_FACEID.PNG)
+      
+      
+As you can see in the image above, the application is able to detect whether or not a new face is present in the clusters and register it. Despite not performing fine-tuning in the last layers of the model (it remains pending as a next step) the model is good enough to sufficiently separate the new faces introduced with respect to the clusters that are already trained.
+     
 <a name="conclusions"></a>
 
 ## Conclusions
