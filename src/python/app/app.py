@@ -18,11 +18,11 @@ switch=1
 log_correct=False
 
 
-#Load dataset path
+# Load dataset path
 config_fixed_app={}
 config_app={}
 config_app["batch_size"]=16
-dataset_path = "../../../Datasets/Cropped-IMGS-1-supervised"
+dataset_path = "../../../Datasets/Cropped-IMGS-2-supervised-train"
 if not(os.path.exists("./logs")):
     logs_path = "./logs"
     os.mkdir(logs_path)
@@ -40,13 +40,13 @@ app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
 
 # Load supervised model
 trained_modelq = base_model(pretrained=False)
-trained_modelq.load_state_dict(torch.load('../saved_models/model_Contrastive.pt',map_location=torch.device('cpu')))
+trained_modelq.load_state_dict(torch.load('../saved_models/model_S_Contrastive_resnet18_3000epochs_Cropped2.pt',map_location=torch.device('cpu')))
 latents, labels, _ , _ , _ = compute_embeddings(modelq=trained_modelq,config=config_app,config_fixed=config_fixed_app,testing=True,show_latents=True)
 camera = cv2.VideoCapture(0)
 
 
 
-
+# Function to detect face with Face detector
 def detect_face(frame):
     global net
     (h, w) = frame.shape[:2]
@@ -71,12 +71,15 @@ def detect_face(frame):
         pass
     return frame
 
+# Function to take pictures of the face
+
 def take_picture(Persona,count, folder_path):
     _,frame = camera.read()
     frame = detect_face(frame)
     cv2.imwrite(folder_path+'/ID{Persona}_{N}.bmp'.format(Persona="%02d" % (Persona,),N="%02d" % (count+1,)),frame)
     print('Saved image: ','ID_{Persona}_{N}.bmp'.format(Persona=Persona,N=count))
  
+# Main function of checking frames 
 def gen_frames():  # Generate frame by frame from camera
     global out, login,rec_frame, capture, signup,latents,labels,log_correct
     while True:
@@ -86,12 +89,12 @@ def gen_frames():  # Generate frame by frame from camera
             if(capture):
                 capture=0
             if(login):
-                #Function to check if you can log in or not (are you in the database?)
+                # Function to check if you can log in or not (are you in the database?)
                 log_correct=False
                 dist,labels_predichas=prediction(image=frame,modelq=trained_modelq,latents=latents,topk=3,labels=labels)
                 dist = round(dist,2)
                 print(dist)
-                if dist < 0.75:
+                if dist < 4.5:
                     log_correct=True
                     print('You are logged')
                 else:
@@ -99,7 +102,7 @@ def gen_frames():  # Generate frame by frame from camera
                 login=0
 
             if(signup):
-                
+                # Register new people 
                 folder_count = 0  # type: int
                 for folders in os.listdir(config_fixed_app["image_path"]):
                     folder_count += 1  # increment counter
@@ -108,6 +111,7 @@ def gen_frames():  # Generate frame by frame from camera
                 new_folder = (dataset_path+f"/{new_username}")
                 os.mkdir(new_folder)
                 pictures = 0
+                # Take 5 pictures with 1 second between each one
                 while pictures <5:
                     _,frame = camera.read()
                     frame = detect_face(frame)
@@ -122,6 +126,7 @@ def gen_frames():  # Generate frame by frame from camera
                     pictures+=1
                     time.sleep(1)
                 signup=0
+                # Load the new latents and labels
                 latents, labels, _ , _ , _ = compute_embeddings(modelq=trained_modelq,config=config_app,config_fixed=config_fixed_app,testing=True,show_latents=False)
 
             try:
@@ -135,6 +140,8 @@ def gen_frames():  # Generate frame by frame from camera
         else:
             pass
 
+# Load the template
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -143,6 +150,7 @@ def index():
 def video_feed():
     return Response(gen_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
+# Requests with post and get
 @app.route('/requests',methods=['POST','GET'])
 def tasks():
     global switch,camera
