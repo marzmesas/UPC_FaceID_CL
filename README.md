@@ -1,6 +1,6 @@
 # Face ID with self-supervised contrastive learning
 
-##Table of contents 
+## Table of contents 
 - [Overview](#overview)
 - [Datasets](#datasets)
 - [Architecture](#architecture)
