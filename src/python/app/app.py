@@ -22,7 +22,7 @@ log_correct=False
 config_fixed_app={}
 config_app={}
 config_app["batch_size"]=16
-dataset_path = "../../../Datasets/Cropped-IMGS-2-supervised-train"
+dataset_path = "../../../Datasets/Cropped-IMGS-1-supervised"
 if not(os.path.exists("./logs")):
     logs_path = "./logs"
     os.mkdir(logs_path)
@@ -41,9 +41,10 @@ app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
 # Load supervised model
 trained_modelq = base_model(pretrained=False)
 trained_modelq.load_state_dict(torch.load('../saved_models/model_Contrastive.pt',map_location=torch.device('cpu')))
+latents, labels, _ , _ , _ = compute_embeddings(modelq=trained_modelq,config=config_app,config_fixed=config_fixed_app,testing=True,show_latents=True)
 camera = cv2.VideoCapture(0)
 
-latents, labels, _ , _ , _ = compute_embeddings(modelq=trained_modelq,config=config_app,config_fixed=config_fixed_app,testing=True,show_latents=True)
+
 
 
 def detect_face(frame):
@@ -90,7 +91,7 @@ def gen_frames():  # Generate frame by frame from camera
                 dist,labels_predichas=prediction(image=frame,modelq=trained_modelq,latents=latents,topk=3,labels=labels)
                 dist = round(dist,2)
                 print(dist)
-                if dist < 4.5:
+                if dist < 0.75:
                     log_correct=True
                     print('You are logged')
                 else:

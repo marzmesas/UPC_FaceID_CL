@@ -136,3 +136,4 @@ dmypy.json
 ./src/resources/checkpoints
 ./src/resources/Images
 ./src/python/wandb
+.DS_Store
