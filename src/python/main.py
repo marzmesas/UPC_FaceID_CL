@@ -40,8 +40,13 @@ path_model="./saved_models"
 path_checkpoint="../../src/resources/checkpoints"
 
 path_logs = "./logs"
+path_Images = "../resources/Images"
 if not(os.path.exists(path_logs)):
   os.mkdir(path_logs)
+
+if not(os.path.exists(path_Images)):
+  os.mkdir(path_Images)
+
 
 # Boolean to train
 training = True
@@ -79,7 +84,7 @@ arch='resnet18'
 # Size of the queue (for the MOCOV2 contrastive)
 K=350
 batch_size=32
-epochs_contrastive=3
+epochs_contrastive=2000
 epochs_supervisedMLP=15
 # Interval to save the checkpoints
 checkpoint_interval=1000

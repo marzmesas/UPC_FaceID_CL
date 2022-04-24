@@ -126,6 +126,8 @@ def train_model(config, config_fixed, modelq, modelk, optim_state=None):
             loss_train,queue=train_epoch(data_loader, modelq, modelk, optimizer, queue, config, config_fixed)
             print(f'Epoch {epoch} - Loss: {loss_train}')
             if epoch % config_fixed["checkpoint_interval"] == 0:
+                if not (os.path.exists("../../src/resources/checkpoints")):
+                    os.mkdir("../../src/resources/checkpoints")
                 torch.save({
                     'epoch': epoch,
                     'model_state_dict': modelq.state_dict(),
