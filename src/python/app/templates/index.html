@@ -1,0 +1,34 @@
+<body>
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul class=flashes>
+        {% for message in messages %}
+          {% if message == "Login denied" or message == "You are already registered!"%}
+            <span style="color: #ff0000;font-size:20px;">
+            <li>{{ message }}</li>
+          {% else %}
+            <span style="color: #2bff00;font-size:20px">
+            <li>{{ message }}</li>
+          {% endif %}
+        {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+    
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8  offset-lg-2">
+              <span style="color: #000000;font-size:25px;">
+                <h2 class="mt-5">FACE ID</h2>
+                <form method="post" action="{{ url_for('tasks') }}">
+                <input type="submit" value="Stop/Start" name="stop" />
+                <input type="submit" value="Login" name="click" />
+          <input type="submit" value="Sign up" name="click"/>
+                </form>
+                <img src="{{ url_for('video_feed') }}" height="80%">
+                <ol style="font-family:courier">
+                
+            </div>
+        </div>
+    </div>
+    </body>
