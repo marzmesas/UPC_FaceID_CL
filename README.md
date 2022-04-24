@@ -206,7 +206,7 @@ As a first base model to compare results and analyze the performance of contrast
 With this model the achieved results are the following:
 
 
-|Dataset|Method| Top-K1|Top-K2|Top-K3|
+|Dataset|Method| Top-K1|Top-K3|Top-K5|
 |:-:|:-:|:-:|:-:|:-:|
 |Cropped-IMGS-1|LogSoftMax  |89.00%|98.00%|99.00%
 |Cropped-IMGS-2|LogSoftMax  |87.00%|97.00%|99.00%
@@ -227,7 +227,7 @@ It is observed that as the data decreases, so does the accuracy, until it reache
 
 With this approach the final loss in training stage on the contrastive learning is 0.84, and the results evaluating in test datasets are:
 
-|Dataset|Method| Top-K1|Top-K2|Top-K3|
+|Dataset|Method| Top-K1|Top-K3|Top-K5|
 |-|-|-|-|-|
 |Cropped-IMGS-1|K-Means  |78.90%|81.68%|83.00%
 |Cropped-IMGS-1|K-Neighboors|84.15%|88.17%|89.80%|
@@ -266,7 +266,7 @@ With Tensorboard projector the latents can be compared on the train dataset (lef
 
 With the contrastive model trained before, an MLP classifier is added on top to perform as a classifier and to try to achieve better results:
 
-|Dataset|Method| Top-K1|Top-K2|Top-K3|
+|Dataset|Method| Top-K1|Top-K3|Top-K5|
 |-|-|-|-|-|
 |Cropped-IMGS-1|SoftMax  |86.00%|96.99%|98.00%
 |Cropped-IMGS-2|SoftMax  |88.00%|97.00%|98.00%
@@ -295,7 +295,7 @@ Using the same architecture resnet18 for each dataset without pretrained weights
 
 #### Using the first dataset (Cropped-IMGS-1)
 
-|Method| Top-K1|Top-K2|Top-K3|
+|Method| Top-K1|Top-K3|Top-K5|
 |-|-|-|-|
 |K-Means  |11.51%|27.36%|38.67%|
 |K-Neighboors| 50.94%|67.92%|76.98%|
@@ -326,7 +326,7 @@ Although the optimal number of clusters in the silhouette analysis is close to t
 For this reason, we go to the last dataset to see if we could get better results.
 
 #### Using the third dataset (Cropped-IMGS-3)
-|Method| Top-K1|Top-K2|Top-K3|
+|Method| Top-K1|Top-K3|Top-K5|
 |-|-|-|-|
 |K-Means  |34.58%|57.01%|63.55%|
 |K-Neighboors| 48.59%|62.61%|72.89%|
@@ -348,7 +348,7 @@ The recommended changes found in the literature that could bridge the gap betwee
 
 Bigger models are tested. For instance, a resnet50 is trained with Cropped-IMGS-2 (or reduced dataset of GTV-FACE-DATABASE-UPC). All hyperparameters, such as K (dictionary size), batch size, epochs, etc remain the same as those previously used.
 
-|Method| Top-K1|Top-K2|Top-K3|
+|Method| Top-K1|Top-K3|Top-K5|
 |-|-|-|-|
 |K-Means  |18.06%|32.10%|43.81%|
 |K-Neighboors| 45.81%|63.81%|70.90%|
@@ -357,7 +357,7 @@ Results are slightly better than using resnet18, but performance is still very l
 
 Larger batch size is also tested using previous resnet18 setup. We tested with batch size of 64,128 and 256. Below we present the most relevants results which are obtained using a batch size of 256. 
 
-|Method| Top-K1|Top-K2|Top-K3|
+|Method| Top-K1|Top-K3|Top-K5|
 |-|-|-|-|
 |K-Means  |20.40|32.77%|43.14%|
 |K-Neighboors| 42.14%|64.55%|74.92%|
@@ -367,7 +367,7 @@ Larger dictionaries are not tested since it size depends on dataset is used.
 If larger dictionary is used, it could become inconsistent since keys updated by older parameters are kept.
 Thus, neither bigger models nor larger batch sizes are enough. Another way to improve results is use more data. Therefore, a reduced version of CASIA which contains about 72000 images that corrresponds to 8 images maximum for each identity is used to pretrain the network in self-supervised mode. Resulting weights after training 100 epochs are then used as initial weights for training in self-supervised mode the reduced  GTV-FACE-DATABASE-UPC database. After having trained 100 epochs, the obtained metrics are:
 
-|Method| Top-K1|Top-K2|Top-K3|
+|Method| Top-K1|Top-K3|Top-K5|
 |-|-|-|-|
 |K-Means  |14.71%|31.77%|40.46%
 |K-Neighboors| 45.15%|61.53%|69.89%|
@@ -377,14 +377,14 @@ In the latter case, we leave unfrozen the last block that has several convolutio
 
 * Training the whole network
 
-|Method| Top-K1|Top-K2|Top-K3|
+|Method| Top-K1|Top-K3|Top-K5|
 |-|-|-|-|
 |K-Means  |13.71%|37.45%|46.82%
 |K-Neighboors| 45.15%|62.54%|69.23%|
 
 * Freezing the first 10 blocks:
 
-|Method| Top-K1|Top-K2|Top-K3|
+|Method| Top-K1|Top-K3|Top-K5|
 |-|-|-|-|
 |K-Means  |12.70%|29.76%|43.81%
 |K-Neighboors| 48.49%|69.89%|79.59%|
