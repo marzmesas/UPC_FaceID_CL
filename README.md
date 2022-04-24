@@ -107,46 +107,44 @@ This was just a short and quick explanation of the used architecture and related
 ---
 
 
-1.   Clone the repo. ```git clone https://github.com/marzmesas/UPC_FaceID_CL```
+1. Clone the repo. ```git clone https://github.com/marzmesas/UPC_FaceID_CL```
 
-2.   Install the dependencies.
-
-  a. Install Conda from: 
+2. Install the dependencies.
+      a. Install Conda from: 
         https://www.anaconda.com/products/individual#Downloads
   
-  b. Create a virtual environment with Conda: ``` conda create --name venv  python=3.8 ```
+      b. Create a virtual environment with Conda: ``` conda create --name venv  python=3.8 ```
 
-  c. Activate the environment: ``` conda activate name venv ```
+      c. Activate the environment: ``` conda activate name venv ```
 
-  d. Install the requirements: ``` pip install -r requirements.txt ```
+      d. Install the requirements: ``` pip install -r requirements.txt ```
 
-3.   Main code (supervised/self-supervised contrastive learning): Run the ```main.py``` with the custom desired parameters:
+3. Main code (supervised/self-supervised contrastive learning): Run the ```main.py``` with the custom desired parameters:
+    <ins>Run Parameters<ins> 
+  
+    * ```supervised = True```: Boolean variable indicating the type of model (supervised: True, self-supervised: False) to run.  
+    * ```supervised_MLP = True```: Boolean variable indicating the type of supervised model (with classifier MLP on head: True, without one: False) to run.
+    * ```plot_MLP = True```: Boolean variable to plot or not the graphic that represents the loss and accuracy in the training stage of the MLP in the supervised   contrastive model.
+    * ```plot_Contrastive = False```: Boolean variable to plot or not the graphic that represents the loss in the training stage of the contrastive part.
+    * ```testing_training = True```:
+    *   ```training = True```: Boolean variable to train the chosen model.
+    *   ```testing = False```: Boolean variable to test the chosen model (it can be done at the same time as the training).
+    *   ```optim = False```: Boolean variable to decide whether or not to use the "W&B" library to optimize parameters.
 
-  <ins>Run Parameters<ins> 
+    <ins>Train Parameters<ins> 
 
-  *   ```supervised = True```: Boolean variable indicating the type of model (supervised: True, self-supervised: False) to run.  
-  *   ```supervised_MLP = True```: Boolean variable indicating the type of supervised model (with classifier MLP on head: True, without one: False) to run.
-  *   ```plot_MLP = True```: Boolean variable to plot or not the graphic that represents the loss and accuracy in the training stage of the MLP in the supervised contrastive model.
-  *   ```plot_Contrastive = False```: Boolean variable to plot or not the graphic that represents the loss in the training stage of the contrastive part.
-  *   ```testing_training = True```:
-  *   ```training = True```: Boolean variable to train the chosen model.
-  *   ```testing = False```: Boolean variable to test the chosen model (it can be done at the same time as the training).
-  *   ```optim = False```: Boolean variable to decide whether or not to use the "W&B" library to optimize parameters.
+    *   ```arch = resnet18```: Variable of type string to decide which architecture to use: -resnet18, -resnet50, - resnet101, -inception resnet v1, -vgg16.
+    *   ```batch_size = 16```: Integer type variable to choose the batch size for the dataset.
+    *   ```epochs_contrastive = 3000```: Integer variable to set the number of epochs to train the contrastive model.
+    *   ```epochs_supervisedMLP = 16```: Integer variable to set the number of epochs to train the supervised MLP model.
+    *   ```K = 16```: Integer variable to set the size of the queue where the latents of the keys are stored.
 
-  <ins>Train Parameters<ins> 
+4. Run the ```app.py``` to execute the Face ID application and test it. 
+    * If you are already registered press "Login" button, and a message will appear above the title indicating if the logon has been succesfully or not.
+    * If you are not registered, press the "Sign up" button, and it will capture 5 images, make sure that you record different points of view of your face. If this button is pressed but you are already registered, a warning message will appear.
+    * To stop/run the application press de "Stop/Start" button.
 
-  *   ```arch = resnet18```: Variable of type string to decide which architecture to use: -resnet18, -resnet50, - resnet101, -inception resnet v1, -vgg16.
-  *   ```batch_size = 16```: Integer type variable to choose the batch size for the dataset.
-  *   ```epochs_contrastive = 3000```: Integer variable to set the number of epochs to train the contrastive model.
-  *   ```epochs_supervisedMLP = 16```: Integer variable to set the number of epochs to train the supervised MLP model.
-  *   ```K = 16```: Integer variable to set the size of the queue where the latents of the keys are stored.
-
-4.    Run the ```app.py``` to execute the Face ID application and test it. 
-  * If you are already registered press "Login" button, and a message will appear above the title indicating if the logon has been succesfully or not.
-  * If you are not registered, press the "Sign up" button, and it will capture 5 images, make sure that you record different points of view of your face. If this button is pressed but you are already registered, a warning message will appear.
-  * To stop/run the application press de "Stop/Start" button.
-
-**Adittional Codes:**
+  **Adittional Codes:**
 
 1.    Full CNN+MLP model: Run the ```FULL_CNN-MLP.py``` to train a resnet-18 architecture with an MLP head composed of 3 layers 
 2.    To split a dataset in train/test, run the ```Split_TrainTest.py``` where you can specify the desired % of training images for the training dataset and the rest for the test dataset.
@@ -159,24 +157,21 @@ This was just a short and quick explanation of the used architecture and related
 
 
 *   Laptop PC #1.
-
-  * Intel Core i7-9750H @ 2.60GHz. 
-  * 16GB RAM.
-  * NVIDIA GeForce GTX 1050, 4GB VRAM.
+    * Intel Core i7-9750H @ 2.60GHz. 
+    * 16GB RAM.
+    * NVIDIA GeForce GTX 1050, 4GB VRAM.
 
 
 *   Laptop PC #2.
-
-  * Intel Core i7-8750H @ 2.20GHz. 
-  * 16GB RAM.
-  * NVIDIA GeForce GTX 1060, 6GB VRAM.
+    * Intel Core i7-8750H @ 2.20GHz. 
+    * 16GB RAM.
+    * NVIDIA GeForce GTX 1060, 6GB VRAM.
 
 *   Google Cloud instance.
-
-  * n1-highmem-2 (2 vCPUs cores)
-  * 13 GB RAM memory
-  * 30 GB Hard disk drive
-
+    * n1-highmem-2 (2 vCPUs cores)
+    * 13 GB RAM memory
+    * 30 GB Hard disk drive
+    
 
 <a name="performance"></a>
 ## Performance
@@ -221,10 +216,6 @@ In the image bellow, it's observed how the loss and the accuracy evolve with res
 ![image](./ReadMe_Resources/CNN+MLP_FULL_50EPOCHS_TOPK5_FULLDATASET.png)
 
 It is observed that as the data decreases, so does the accuracy, until it reaches a value of 80% with the smallest dataset. This happens despite the fact that of having removed images containing less information that could potentially hinder the model (such as occlusions with glasses or hands). By having fewer images in the original dataset, the model is not able to obtain higher precision if images are also removed, which, although they seem irrelevant, help the model to be more robust and more precise.
-
-
-
-
 
 
 <a name="milestone_2"></a>
