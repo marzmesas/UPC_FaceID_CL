@@ -50,9 +50,10 @@ GTAV-FACE-DATABASE, from UPC university, is the main dataset and it contains 175
 
 Three different datasets have been derived from said GTAV-FACE-DATABASE with the intention of "facilitating" the learning of the networks, namely:
 
+
 1. Cropped-IMGS-1: In this dataset, the original pictures have been cropped, leaving just the face itself. This cropping has been carried out by identifying the face area through a haar cascade algorithm pre-trained for such a task. with this pre-processing, we sought to eliminate information that was irrelevant to the face detection (backgrounds, t-shirts, etc.). 
-2. Cropped-IMGS-2: Reduced version of the previous one, eliminating occlusion on the faces and full profile shots. 696 training images and 299 test images.
-3. Cropped-IMGS-3: Reduced version of the original dataset with only frontal faces. 232 training images and 109 test images.
+2. Cropped-IMGS-2: Reduced version of the previous one, eliminating occlusion on the faces and full profile shots, in an attempt to ease the training even further.
+3. Cropped-IMGS-3: Reduced version of the original dataset with only frontal faces, to maximize the relevant information and facilitate as much as possible the learning process.
 
 ![image](./ReadMe_Resources/ImageCrop.png)
 
@@ -179,7 +180,7 @@ This was just a short and quick explanation of the used architecture and related
 ---
 In this section we present the results obtained and the application developed, in chronological order, while following the roadmap established at the beginning of the project. Said roadmap included the following:
 - Milestone 1 : implementation of a basic supervised model using CNN + MLP, to be used as a classical deep learning model (upper bound baseline) from then on.
-- Milestone 2 : implementation of a model that uses contrastive learning in a supervised way.
+- Milestone 2 : implementation of a supervised contrastive learning architecture.
 - Milestone 3 : implementation of the final self-supervised contrastive learning.
 - Milestone 4 : implementation of the Face-ID application with supervised contrastive learning.      
 
