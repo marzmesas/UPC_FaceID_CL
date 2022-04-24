@@ -119,7 +119,8 @@ This was just a short and quick explanation of the used architecture and related
 
       d. Install the requirements: ``` pip install -r requirements.txt ```
 
-3. Main code (supervised/self-supervised contrastive learning): Run the ```main.py``` with the custom desired parameters:
+3. Main code (supervised/self-supervised contrastive learning): Run the ```main.py``` from the same folder where it is with the custom desired parameters:
+    
     <ins>Run Parameters<ins> 
   
     * ```supervised = True```: Boolean variable indicating the type of model (supervised: True, self-supervised: False) to run.  
@@ -139,7 +140,7 @@ This was just a short and quick explanation of the used architecture and related
     *   ```epochs_supervisedMLP = 16```: Integer variable to set the number of epochs to train the supervised MLP model.
     *   ```K = 16```: Integer variable to set the size of the queue where the latents of the keys are stored.
 
-4. Run the ```app.py``` to execute the Face ID application and test it. 
+4. Run the ```app.py``` from the same folder where it is to execute the Face ID application and test it. It takes a while at first to load models and environment, be patient!  
     * If you are already registered press "Login" button, and a message will appear above the title indicating if the logon has been succesfully or not.
     * If you are not registered, press the "Sign up" button, and it will capture 5 images, make sure that you record different points of view of your face. If this button is pressed but you are already registered, a warning message will appear.
     * To stop/run the application press de "Stop/Start" button.
@@ -176,10 +177,11 @@ This was just a short and quick explanation of the used architecture and related
 <a name="performance"></a>
 ## Performance
 ---
-In this section we present the results obtained, in chronological order, while following the roadmap established at the beginning of the project. Said roadmap included the following:
-- Milestone 1 : implementation of a basic supervised model using CNN + MLP, to be used as the "ideal model" from then on.
+In this section we present the results obtained and the application developed, in chronological order, while following the roadmap established at the beginning of the project. Said roadmap included the following:
+- Milestone 1 : implementation of a basic supervised model using CNN + MLP, to be used as a classical deep learning model (upper bound baseline) from then on.
 - Milestone 2 : implementation of a model that uses contrastive learning in a supervised way.
 - Milestone 3 : implementation of the final self-supervised contrastive learning.
+- Milestone 4 : implementation of the Face-ID application with supervised contrastive learning.      
 
 <a name="evaluation_metrics"></a>
 ### Evaluation Metrics 
@@ -191,7 +193,7 @@ The metrics used to evaluate the models have been the following:
 * K-MEANS: Through the embeddings extracted from the contrastive model, the K-Means method is used to make a cluster of the 44 theoretical classes. With the clusters obtained by K-Means, the images of the test dataset are evaluated, obtaining their embeddings and checking which is the closest cluster. With the closest cluster, we obtained the topk accuracy, based on whether any of the k closest images belong to the same person as the test image.
 * K-NN: The top-k accuracy is obtained, based on whether any of the k images with the smallest distance from the image to be evaluated belongs to the same person. 
 
-* Softmax: With the supervised models trained with a top head classifier, the accuracy has been calculated through the last softmax layer, based on whether any of the k most likely predictions match the groundtruth label.
+* LogSoftMax: With the supervised models trained with a top head classifier, the accuracy has been calculated through the last LogSoftMax layer, based on whether any of the k most likely predictions match the groundtruth label.
 
 **2. Silhouette score:** Silhouette is a function of sklearn library which allows us to obtain the number of optimal clusters with respect to the embeddings of the train dataset, the silhouette score is computed as a mean of silhouette coefficient of all samples. The silhouette coefficient is calculated using the mean intra-cluster distance and the mean nearest-cluster distance for each sample. It is a useful metric, since it allows analyzing how well the clusters have been created, as well as giving an intuition about how well the trained contrastive model has performed. This metric gives a score between -1 and 1, with 1 being the best. Values near 0 indicate overlapping clusters. Negative values generally indicate that a sample has been assigned to the wrong cluster, as a different cluster is more similar.
 
@@ -206,25 +208,24 @@ With this model the achieved results are the following:
 
 |Dataset|Method| Top-K1|Top-K2|Top-K3|
 |:-:|:-:|:-:|:-:|:-:|
-|Cropped-IMGS-1|SoftMax  |89.00%|98.00%|99.00%
-|Cropped-IMGS-2|SoftMax  |87.00%|97.00%|99.00%
-|Cropped-IMGS-3|SoftMax  |80.00%|89.00%|95.00%
+|Cropped-IMGS-1|LogSoftMax  |89.00%|98.00%|99.00%
+|Cropped-IMGS-2|LogSoftMax  |87.00%|97.00%|99.00%
+|Cropped-IMGS-3|LogSoftMax  |80.00%|89.00%|95.00%
 
 
 In the image bellow, it's observed how the loss and the accuracy evolve with respect to the number of epochs in which the model has been trained.
 
 ![image](./ReadMe_Resources/CNN+MLP_FULL_50EPOCHS_TOPK5_FULLDATASET.png)
 
-It is observed that as the data decreases, so does the accuracy, until it reaches a value of 80% with the smallest dataset. This happens despite the fact that of having removed images containing less information that could potentially hinder the model (such as occlusions with glasses or hands). By having fewer images in the original dataset, the model is not able to obtain higher precision if images are also removed, which, although they seem irrelevant, help the model to be more robust and more precise.
+It is observed that as the data decreases, so does the accuracy, until it reaches a value of 80% of accuracy in the Top-K1 with the smallest dataset. This happens despite the fact that of having removed images containing less information that could potentially hinder the model (such as occlusions with glasses or hands). By having fewer images in the original dataset, the model is not able to obtain higher precision if images are also removed, which, although they seem irrelevant, help the model to be more robust and more precise.
 
 
 <a name="milestone_2"></a>
 ### MILESTONE 2: Supervised Contrastive Learning
 
 1.1. SUPERVISED CONTRASTIVE LEARNING:
-![image](./ReadMe_Resources/ContrastiveLoss_3000epochs_1.png)
 
-With this approach the final loss in training stage is 0.84, and the results evaluating in test datasets are:
+With this approach the final loss in training stage on the contrastive learning is 0.84, and the results evaluating in test datasets are:
 
 |Dataset|Method| Top-K1|Top-K2|Top-K3|
 |-|-|-|-|-|
@@ -410,10 +411,12 @@ That is why the application has been implemented with the "supervised contrastiv
 
 ![image](./ReadMe_Resources/FACEID_APP.png)
       
+As you can see in the image above, in the first instance, as the person is not registered when trying to log in, the application returns an error message indicating that they are not registered. After registering, we get a message that the registration has been completed successfully and then when trying to log in, it is successful. In the following images it can be seen that if the face is covered, the application is not logged in, and if that person has already been registered in the application, an error message is returned. 
+
+      
 ![image](./ReadMe_Resources/Latents_FACEID.PNG)
-      
-      
-As you can see in the image above, the application is able to detect whether or not a new face is present in the clusters and register it. Despite not performing fine-tuning in the last layers of the model (it remains pending as a next step) the model is good enough to sufficiently separate the new faces introduced with respect to the clusters that are already trained.
+            
+Despite not performing fine-tuning in the last layers of the model (it remains pending as a next step) the model is good enough to sufficiently separate the new faces introduced with respect to the clusters that are already trained. 
      
 <a name="conclusions"></a>
 
@@ -426,6 +429,10 @@ We have presented four approaches to face the face recognition with the perspect
 
 The data reveals that the option of using self-supervised contrastive for a face recognition application is not the most appropriate, as can be seen in the obtained metrics.  In addition, we can verify that any of the networks that use MLP + Softmax as classifier provide better accuracies than using KNN.
 
+The self-supervised model has obtained worse results than we had initially expected. However, after all the tests and training carried out, it has been concluded that the lack of data in the dataset used for the purpose of developing the application and the fact that the classes being compared have very similar similarities, prevent obtain better results with the computational resources available.
+
+Normally the most successful self-supervised models have been trained on datasets of very different classes, and even so, if the computational resources are not powerful enough, the results obtained are not even remotely those that can be obtained with supervised models.
+      
 <a name="next_steps"></a>
 
 ## Next steps
