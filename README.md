@@ -355,7 +355,7 @@ Bigger models are tested. For instance, a resnet50 is trained with Cropped-IMGS-
 
 Results are slightly better than using resnet18, but performance is still very low for all metrics.
 
-Larger batch size is also tested using previous resnet18 setup, from 32 to 256.
+Larger batch size is also tested using previous resnet18 setup. We tested with batch size of 64,128 and 256. Below we present the most relevants results which are obtained using a batch size of 256. 
 
 |Method| Top-K1|Top-K2|Top-K3|
 |-|-|-|-|
@@ -372,7 +372,8 @@ Thus, neither bigger models nor larger batch sizes are enough. Another way to im
 |K-Means  |14.71%|31.77%|40.46%
 |K-Neighboors| 45.15%|61.53%|69.89%|
 
-In the same strategy to use more data and bigger models, a [pretrained](https://github.com/davidsandberg/facenet) [Inception Resnet](https://arxiv.org/abs/1602.07261) with VGGFACE-2 dataset consisting of ~3.3M faces and ~9000 classes is used as encoder. The problem is tacked in two differents ways: training the whole network using pretrained weights and freezing 10 first layers. In both cases results are very close. 
+In the same strategy to use more data and bigger models, a [pretrained](https://github.com/davidsandberg/facenet) [Inception Resnet](https://arxiv.org/abs/1602.07261) with VGGFACE-2 dataset consisting of ~3.3M faces and ~9000 classes is used as encoder. The problem is tacked in two differents ways: training the whole network using pretrained weights and freezing 10 first blocks. 
+In the latter case, we leave unfrozen the last block that has several convolutional layers. In both cases results are very close. 
 
 * Training the whole network
 
@@ -381,7 +382,7 @@ In the same strategy to use more data and bigger models, a [pretrained](https://
 |K-Means  |13.71%|37.45%|46.82%
 |K-Neighboors| 45.15%|62.54%|69.23%|
 
-* Freezing the first 10 layers
+* Freezing the first 10 blocks:
 
 |Method| Top-K1|Top-K2|Top-K3|
 |-|-|-|-|
@@ -429,9 +430,9 @@ We have presented four approaches to face the face recognition with the perspect
 
 The data reveals that the option of using self-supervised contrastive for a face recognition application is not the most appropriate, as can be seen in the obtained metrics.  In addition, we can verify that any of the networks that use MLP + Softmax as classifier provide better accuracies than using KNN.
 
-The self-supervised model has obtained worse results than we had initially expected. However, after all the tests and training carried out, it has been concluded that the lack of data in the dataset used for the purpose of developing the application and the fact that the classes being compared have very similar similarities, prevent obtain better results with the computational resources available.
+The results obtained with self-supervised model show it performed below our expectations. However, after all tests and trainings we carried out during the project, we can conclude that the lack of data and the similarity between classes are the main reasons why the initial purpose of using self-supervised for a facial recognition application has not been successful. In addition, many of the recommendations to improve the performance of self-supervised are linked to using computational resources that we did not have available.
 
-Normally the most successful self-supervised models have been trained on datasets of very different classes, and even so, if the computational resources are not powerful enough, the results obtained are not even remotely those that can be obtained with supervised models.
+Self-supervised models that we find in the bibliography use easily distinguishable classes, as is the case of ImageNet. Apart from using large datasets such as ImageNet, in the different papers consulted the authors use multiple GPUs, resources that we have not had within our reach. Without these limitations we could have tested self-supervised datasets like CASIA and VGGFACE2 with large batch sizes and using much deeper networks than resnet18.
       
 <a name="next_steps"></a>
 
