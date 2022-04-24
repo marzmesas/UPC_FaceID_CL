@@ -435,8 +435,13 @@ The data reveals that the option of using self-supervised contrastive for a face
 
 ## Next steps
 ---
-- VGG self supervised app
-- fine tuning implementation for the last mlp layers upon 
+- Fully self-supervised architecture implemented in the application
+
+Using a larger dataset (such as VGG-Face2), carry out a fully self-supervised training of a MocoV2 architecture, using a resnet-18 or a larger network as backbone. Once this training has been performed, provided a much larger computational power than the one available in this project, implement the FaceID application using the embeddings extracted from the trained model.
+
+- Fine-tuning of the model per new user signup
+
+In order to improve the model performance with new data, carry out fine tuning of the MLP classifier located after the CNN backbone. This fine-tuning is carried out using the data gathered when a new user signs up for the application.
 
 
 <a name="references"></a>
