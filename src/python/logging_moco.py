@@ -7,7 +7,7 @@ from torch.utils.tensorboard import SummaryWriter
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 torch.cuda.empty_cache()
 # Function that logs latents of the images (training and test dataset)
-def log_embeddings(model, data_loader, testing=False, image_test = None,show_latents=False):
+def log_embeddings(model, data_loader,path_logs,testing=False, image_test = None,show_latents=False):
     
   list_latent = []
   list_images = []
@@ -15,9 +15,9 @@ def log_embeddings(model, data_loader, testing=False, image_test = None,show_lat
   list_path = []
   if show_latents:
     if testing:
-      logdir = os.path.join("./src/python/logs", datetime.datetime.now().strftime("%Y%m%d-%H%M%S")+"_EmbeddingsTraining")
+      logdir = os.path.join(path_logs, datetime.datetime.now().strftime("%Y%m%d-%H%M%S")+"_EmbeddingsTraining")
     else:
-      logdir = os.path.join("./src/python/logs", datetime.datetime.now().strftime("%Y%m%d-%H%M%S")+"_EmbeddingsTest")
+      logdir = os.path.join(path_logs, datetime.datetime.now().strftime("%Y%m%d-%H%M%S")+"_EmbeddingsTest")
     writer = SummaryWriter(log_dir=logdir)
   model=model.to(device)
 
@@ -53,6 +53,7 @@ def log_embeddings(model, data_loader, testing=False, image_test = None,show_lat
   # Embeddings are saved for tensoboard representation
   if show_latents:
     writer.add_embedding(latent,metadata=labels, label_img=images)
+  print("latents obtained")
 
   return latent,labels, images, path
  

@@ -6,7 +6,7 @@ if torch.cuda.is_available():
 import copy
 
 from model import base_model
-# from model import supervised_model
+from model import supervised_model
 from run_training import train_model
 from run_training import train_supervised_model
 from evaluation import compute_embeddings, accuracy, test_supervised_model,silhouette
@@ -34,13 +34,13 @@ plot_MLP = True  # Boolean to plot the loss in supervised contrastive MLP
 plot_contrastive=True # Boolean to plot the contrastive loss
 # Boolean to check the accuracy of the test dataset while training (Only in supervised contrastive MLP)
 testing_training = True
-path_img_training="./Datasets/Cropped-IMGS-3-supervised"
-path_img_testing ="./Datasets/Cropped-IMGS-3-supervised"
-path_img_app = './Datasets/Cropped-IMGS-2-supervised'
+path_img_training="./Datasets/Cropped-IMGS-2-supervised-train"
+path_img_testing ="./Datasets/Cropped-IMGS-2-supervised-test"
 path_model="./src/python/saved_models"
 path_checkpoint="./src/resources/checkpoints"
+path_logs = "./src/python/logs"
 # Boolean to train
-training = False
+training = True
 # Boolean to optimize
 optim= False
 # Boolean to test the predictions
@@ -85,9 +85,10 @@ checkpoint_interval=1000
 # Fixed parameters:
 config_fixed={
           # Path of the training dataset
-          "image_path": path_img_app,
+          "image_path": path_img_training,
           # Path of the test dataset
           "image_path_test": path_img_testing,
+          "logs_path":path_logs,
           "tau": 0.05,
           "epochs":epochs_contrastive,
           "epochs_supervised":epochs_supervisedMLP,
@@ -275,7 +276,8 @@ def inference():
     config=None
     wandb.agent(sweep_id, partial(train_model, config, config_fixed, modelq, modelk), count=count)
 
+# Run Main
 
-  if __name__ == '__main__':
-    inference()
+if __name__ == '__main__':
+  inference()
 

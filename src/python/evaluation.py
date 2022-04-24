@@ -51,7 +51,7 @@ def compute_embeddings(modelq, config, config_fixed, testing=False, image_test=N
         data_loader_embedding = DataLoader(dataset=dataset_embedding,batch_size=config["batch_size"],shuffle=False)
     # Get embeddings
     # We get the labels, latents and images for graphic purposes
-    latents, labels, images, path=log_embeddings(modelq, data_loader_embedding, testing, image_test,show_latents)
+    latents, labels, images, path=log_embeddings(modelq, data_loader_embedding, config_fixed["logs_path"],testing, image_test,show_latents)
 
     return latents, labels, images, path, modelq
 
@@ -106,49 +106,31 @@ def graph_embeddings(latents, labels):
     plt.pause(0)
 
 def prediction(image, modelq, latents, topk, labels):
-        
     transform = transforms.Compose([transforms.ToPILImage(), transforms.Resize((160,160)), transforms.ToTensor()])
     modelq.eval()
     modelq.to(device)
-
     if len(nn.Sequential(*list(modelq.fc.children()))) == 5:
         modelq.fc = nn.Sequential(*list(modelq.fc.children())[:-5])
+    
+    img = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-    tensor_sample = transform(image).to(device)
+    tensor_sample = transform(img).to(device)
     tensor_sample = tensor_sample.unsqueeze(0)
     latent_sample = modelq(tensor_sample)
     latent_sample = latent_sample.to('cpu').detach().numpy()
-    
-    # OPTICS is used to obtain the Nº of clusters to use them with KMEANS method 
-    # OPTICS is used and not DBSCAN because it only needs 1 parameter to optimize min_samples 
-    # Clustering = OPTICS(min_samples=20).fit(latents)
-    # n_clusters_=len(set(clustering.labels_))
-    # kmeans = KMeans(n_clusters=44, random_state=0).fit(latents)
-    # # We get the prediction of the closest cluster
-    # label_closest_cluster = kmeans.predict(latent_sample.astype(float))
-    # label_closest_cluster=label_closest_cluster[0]
-    # # Indexs of the elements that forms the cluster 
-    # idx = np.where(kmeans.labels_==label_closest_cluster)
-    # # Take num_neighboors of the elements that forms the cluster
-    # idx=idx[0][0:num_neighboors]
-    # # Restore the centroids of the clusters
-    # centroids = kmeans.cluster_centers_
-    # # Obtain the distance between the sample and the closest cluster
-    # distance_from_closest_centroid = distance.euclidean(centroids[label_closest_cluster], latent_sample)
-    
+
     neigh = NearestNeighbors(n_neighbors=topk+1)
     neigh.fit(latents)
     dist, idx = neigh.kneighbors(latent_sample)
+    dist=dist[0]
+    dist=dist[1:]
     idxs = idx[0]
     idxs=idxs[1:]
     list_labels = (labels[idxs]).tolist()
-    # for i,_ in enumerate(list_labels):  
-    #   nombre_prediccion = list_labels[i]
-    #   if nombre_prediccion == int((nombre_groundtruth)):
-    #     accuracy+=1
-    #     break
-  
-    # accuracy = (accuracy/len(list_files_test))*100    
+    list_dist = dist.tolist()
+    dist = sum(list_dist)/len(list_dist)
+    print(list_labels)
+
     return dist, list_labels
 
 
@@ -166,7 +148,7 @@ def accuracy(latents,modelq,list_files_test,topk,nombres,method):
     img = cv2.imread(list_files_test[i])
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     nombre_groundtruth = list_files_test[i]
-    nombre_groundtruth=nombre_groundtruth.split('/')[-2][-2:]
+    nombre_groundtruth=nombre_groundtruth.split('\\')[-2][-2:]
     res = transform(img).to(device)
     tensor_sample = res.unsqueeze(0)
     latent_sample = modelq(tensor_sample)
@@ -347,7 +329,7 @@ def test_supervised_model(network_contrastive,Linear_model,config_fixed,K):
         Classes_Map[Classes_List[i]] = i
     test_names = sorted(glob.glob(config_fixed["image_path_test"]+'/*/*.bmp',recursive=True))
     names_test = random.sample(test_names, len(test_names))
-    labels_test = [(x.split('/')[-1])[0:4] for x in names_test]
+    labels_test = [(x.split('\\')[-1])[0:4] for x in names_test]
     transform = transforms.Compose([transforms.ToPILImage(), transforms.Resize((160,160)), transforms.ToTensor()])
     dataset_test = CustomDataset_supervised_Testing(names_test,labels_test,transform)
     dataloader_test = DataLoader(dataset_test,batch_size=16,shuffle=False)

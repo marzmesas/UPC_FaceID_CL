@@ -173,7 +173,7 @@ def train_supervised_model(model_MLP,network_contrastive,config_fixed,testing_tr
 
     train_names = sorted(glob.glob(config_fixed["image_path"]+'/*/*.bmp',recursive=True))
     names_train = random.sample(train_names, len(train_names))
-    labels_train = [(x.split('/')[-1])[0:4] for x in names_train]
+    labels_train = [(x.split('\\')[-1])[0:4] for x in names_train]
     transform=transforms.Compose([transforms.ToPILImage(),transforms.Resize((160,160)), transforms.ToTensor()])
     dataset_train=CustomDataset_supervised_Testing(names_train,labels_train,transform)
     train_loader = DataLoader(dataset_train,batch_size=16,shuffle=True)
