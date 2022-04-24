@@ -269,9 +269,9 @@ With the contrastive model trained before, an MLP classifier is added on top to 
 
 |Dataset|Method| Top-K1|Top-K3|Top-K5|
 |-|-|-|-|-|
-|Cropped-IMGS-1|SoftMax  |86.00%|96.99%|98.00%
-|Cropped-IMGS-2|SoftMax  |88.00%|97.00%|98.00%
-|Cropped-IMGS-3|SoftMax  |80.00%|85.00%|92.00%
+|Cropped-IMGS-1|LogSoftMax  |86.00%|96.99%|98.00%
+|Cropped-IMGS-2|LogSoftMax  |88.00%|97.00%|98.00%
+|Cropped-IMGS-3|LogSoftMax  |80.00%|85.00%|92.00%
 
 
 
