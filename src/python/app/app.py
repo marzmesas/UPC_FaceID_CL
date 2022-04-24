@@ -40,7 +40,7 @@ app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
 
 # Load supervised model
 trained_modelq = base_model(pretrained=False)
-trained_modelq.load_state_dict(torch.load('../saved_models/model_S_Contrastive_resnet18_3000epochs_Cropped2.pt',map_location=torch.device('cpu')))
+trained_modelq.load_state_dict(torch.load('../saved_models/model_S_Contrastive_resnet18_3000epochs_Cropped2R.pt',map_location=torch.device('cpu')))
 latents, labels, _ , _ , _ = compute_embeddings(modelq=trained_modelq,config=config_app,config_fixed=config_fixed_app,testing=True,show_latents=True)
 camera = cv2.VideoCapture(0)
 

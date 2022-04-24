@@ -61,11 +61,11 @@ pretrained_checkpoint_file =  'None'
 pretrained_model_file =  'None'
 
 # File to save the trained contrastive model 
-output_model_file = 'model_S_Contrastive_resnet18_3000epochs_Cropped2.pt'
+output_model_file = 'model_S_Contrastive_resnet18_3000epochs_Cropped2R.pt'
 # File to save the test contrastive model 
 test_model_file = output_model_file
 # File to save the trained MLP model
-output_model_file_MLP = 'model_S_MLP_resnet18_15epochs_Cropped2.pt'
+output_model_file_MLP = 'model_S_MLP_resnet18_15epochs_Cropped2R.pt'
 # File to save the test MLP model 
 test_model_file_MLP = output_model_file_MLP
 
