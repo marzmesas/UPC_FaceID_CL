@@ -6,44 +6,42 @@ sys.path.append('..')
 import numpy as np
 from evaluation import prediction, compute_embeddings
 from model import base_model
-from main import config, config_fixed
 import torch
+from flask import*
 
-global login,rec_frame, switch, capture, out, signup 
+global login,rec_frame, switch, capture, out, signup
+
 login=0
 capture=0
 signup=0
 switch=1
+log_correct=False
 
-# Make shots directory to save pics
-# try:
-#     os.mkdir('./shots')
-# except OSError as error:
-#     pass
-
-
-count = 0
-for f in os.listdir("../../../Datasets/Cropped-IMGS-1-supervised"): ##Get Number of different people for signup functionality
-    count+=1
-print(count)
 
 #Load dataset path
-dataset_path = "../../../Datasets/Cropped-IMGS-1-supervised"
-config_fixed['image_path'] = dataset_path
-
+config_fixed_app={}
+config_app={}
+config_app["batch_size"]=16
+dataset_path = "../../../Datasets/Cropped-IMGS-2-supervised-train"
+logs_path = "./logs"
+config_fixed_app["image_path"] = dataset_path
+config_fixed_app["logs_path"] = logs_path
 
 # Load pretrained face detection model    
 net = cv2.dnn.readNetFromCaffe('./detection_model/deploy.prototxt.txt', './detection_model/res10_300x300_ssd_iter_140000.caffemodel')
 
 # Instatiate flask app  
 app = Flask(__name__, template_folder='./templates')
+app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
 
-# Load unsupervised model
+
+# Load supervised model
 trained_modelq = base_model(pretrained=False)
 trained_modelq.load_state_dict(torch.load('../saved_models/model_Contrastive.pt',map_location=torch.device('cpu')))
-# Load latents
-# latents, labels, _ , _ , _ = compute_embeddings(trained_modelq,config,config_fixed)
 camera = cv2.VideoCapture(0)
+
+latents, labels, _ , _ , _ = compute_embeddings(modelq=trained_modelq,config=config_app,config_fixed=config_fixed_app,testing=True,show_latents=True)
+
 
 def detect_face(frame):
     global net
@@ -69,39 +67,58 @@ def detect_face(frame):
         pass
     return frame
 
-def take_picture(count, img, folder_path):
-    cv2.imwrite(folder_path+'/shot{}.jpg'.format(count),img)
-    print('Saved image: ','shot{}.jpg'.format(count))
+def take_picture(Persona,count, folder_path):
+    _,frame = camera.read()
+    frame = detect_face(frame)
+    cv2.imwrite(folder_path+'/ID{Persona}_{N}.bmp'.format(Persona="%02d" % (Persona,),N="%02d" % (count+1,)),frame)
+    print('Saved image: ','ID_{Persona}_{N}.bmp'.format(Persona=Persona,N=count))
  
 def gen_frames():  # Generate frame by frame from camera
-    global out, login,rec_frame, capture, signup, pictures
+    global out, login,rec_frame, capture, signup,latents,labels,log_correct
     while True:
         success, frame = camera.read() 
         if success:                
             frame= detect_face(frame)   
             if(capture):
                 capture=0
-                # now = datetime.datetime.now()
-                # p = os.path.sep.join(['shots', "shot_{}.png".format(str(now).replace(":",''))])
-                # cv2.imwrite(p, frame)
             if(login):
-                # login=0
-                # dist, list_labels = prediction(frame, trained_modelq, latents, 3 , labels)
-                # if dist < 0.3:
-                #     print('You are logged')
-                # else:
-                #     print('Login denied')
-                pass
+                #Function to check if you can log in or not (are you in the database?)
+                log_correct=False
+                dist,labels_predichas=prediction(image=frame,modelq=trained_modelq,latents=latents,topk=3,labels=labels)
+                dist = round(dist,2)
+                print(dist)
+                if dist < 4.5:
+                    log_correct=True
+                    print('You are logged')
+                else:
+                    print('Login denied',"error")
+                login=0
+
             if(signup):
-                signup = 0
+                
+                folder_count = 0  # type: int
+                for folders in os.listdir(config_fixed_app["image_path"]):
+                    folder_count += 1  # increment counter
+                print("There are {0} folders".format(folder_count))
+                new_username = f'ID{folder_count+1}'
+                new_folder = (dataset_path+f"/{new_username}")
+                os.mkdir(new_folder)
                 pictures = 0
-                new_username = f'ID{count+1}'
-                os.mkdir(dataset_path+f"/{new_username}")
-                new_folder_path = dataset_path+f"/{new_username}"
-                while pictures <3:
-                    take_picture(pictures,frame,new_folder_path)
+                while pictures <5:
+                    _,frame = camera.read()
+                    frame = detect_face(frame)
+                    take_picture(folder_count+1,pictures, new_folder)
+
+                    try:
+                        ret, buffer = cv2.imencode('.jpg', cv2.flip(frame,1))
+                        frame = buffer.tobytes()
+                        yield (b'--frame\r\n'b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+                    except Exception as e:
+                        pass
                     pictures+=1
+                    time.sleep(1)
                 signup=0
+                latents, labels, _ , _ , _ = compute_embeddings(modelq=trained_modelq,config=config_app,config_fixed=config_fixed_app,testing=True,show_latents=False)
 
             try:
                 ret, buffer = cv2.imencode('.jpg', cv2.flip(frame,1))
@@ -129,14 +146,25 @@ def tasks():
         if request.form.get('click') == 'Login':
             global login
             login=1
-        elif  request.form.get('click') == 'Capture':
-            global capture
-            capture=not capture
-            if(capture):
-                time.sleep(4)   
+            time.sleep(2)
+            if log_correct:
+                flash("Succesfully logged in")
+                return redirect(url_for('index'))
+            else:
+                flash("Login denied")
+                return redirect(url_for('index')) 
         elif  request.form.get('click') == 'Sign up':
-            global signup
-            signup=1
+            login=1
+            time.sleep(2)
+            if log_correct:
+                flash("You are already registered!")
+                return redirect(url_for('index'))
+            else:
+                global signup
+                signup=1
+                time.sleep(10)
+                flash("Sign up completed")
+                return redirect(url_for('index'))
         elif  request.form.get('stop') == 'Stop/Start':
             
             if(switch==1):
