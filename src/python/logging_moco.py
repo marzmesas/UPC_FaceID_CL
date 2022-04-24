@@ -53,7 +53,7 @@ def log_embeddings(model, data_loader,path_logs,testing=False, image_test = None
   # Embeddings are saved for tensoboard representation
   if show_latents:
     writer.add_embedding(latent,metadata=labels, label_img=images)
-  print("latents obtained")
+  # print("latents obtained")
 
   return latent,labels, images, path
  

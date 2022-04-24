@@ -34,11 +34,15 @@ plot_MLP = True  # Boolean to plot the loss in supervised contrastive MLP
 plot_contrastive=True # Boolean to plot the contrastive loss
 # Boolean to check the accuracy of the test dataset while training (Only in supervised contrastive MLP)
 testing_training = True
-path_img_training="./Datasets/Cropped-IMGS-2-supervised-train"
-path_img_testing ="./Datasets/Cropped-IMGS-2-supervised-test"
-path_model="./src/python/saved_models"
-path_checkpoint="./src/resources/checkpoints"
-path_logs = "./src/python/logs"
+path_img_training="../../Datasets/Cropped-IMGS-2-supervised-train"
+path_img_testing ="../../Datasets/Cropped-IMGS-2-supervised-test"
+path_model="./saved_models"
+path_checkpoint="../../src/resources/checkpoints"
+
+path_logs = "./logs"
+if not(os.path.exists(path_logs)):
+  os.mkdir(path_logs)
+
 # Boolean to train
 training = True
 # Boolean to optimize
@@ -75,7 +79,7 @@ arch='resnet18'
 # Size of the queue (for the MOCOV2 contrastive)
 K=350
 batch_size=32
-epochs_contrastive=2000
+epochs_contrastive=3
 epochs_supervisedMLP=15
 # Interval to save the checkpoints
 checkpoint_interval=1000
@@ -152,7 +156,7 @@ def inference():
         plt.figure(figsize=(10, 10))
         plt.plot(epoch_losses)
         plt.legend(['Training Losses'])
-        plt.savefig('./src/resources/Images/ContrastiveLoss_'+str(config_fixed["epochs"])+'epochs')
+        plt.savefig('../resources/Images/ContrastiveLoss_'+str(config_fixed["epochs"])+'epochs')
         plt.show()
 
       if config_fixed["supervised_MLP"] == True:
@@ -174,7 +178,7 @@ def inference():
           plt.plot(metrics["tr_accs"], label='train')
           plt.plot(metrics["te_accs"], label='eval')
           plt.legend()
-          plt.savefig('./src/resources/Images/SupervisedMLPLoss_'+str(config_fixed["epochs_supervised"])+'epochs')
+          plt.savefig('../resources/Images/SupervisedMLPLoss_'+str(config_fixed["epochs_supervised"])+'epochs')
           plt.show()
 
     if testing:

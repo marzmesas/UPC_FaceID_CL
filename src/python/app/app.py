@@ -23,7 +23,10 @@ config_fixed_app={}
 config_app={}
 config_app["batch_size"]=16
 dataset_path = "../../../Datasets/Cropped-IMGS-2-supervised-train"
-logs_path = "./logs"
+if not(os.path.exists("./logs")):
+    logs_path = "./logs"
+    os.mkdir(logs_path)
+else: logs_path = "./logs"
 config_fixed_app["image_path"] = dataset_path
 config_fixed_app["logs_path"] = logs_path
 

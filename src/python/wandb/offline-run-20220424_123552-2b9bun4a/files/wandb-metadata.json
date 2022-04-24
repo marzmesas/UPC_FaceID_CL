@@ -1,0 +1,22 @@
+{
+    "os": "Windows-10-10.0.19043-SP0",
+    "python": "3.9.12",
+    "heartbeatAt": "2022-04-24T10:35:52.988976",
+    "startedAt": "2022-04-24T10:35:52.038658",
+    "docker": null,
+    "cpu_count": 12,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": "D:\\Formacion_Academica\\Posgrado_UPC\\Projects\\UPC_FaceID_CL\\src\\python\\main.py",
+    "codePath": "src\\python\\main.py",
+    "git": {
+        "remote": "https://github.com/marzmesas/UPC_FaceID_CL.git",
+        "commit": "adb47800f479b5b9b9f58718b4cff754193a3d66"
+    },
+    "email": "mmesasro@gmail.com",
+    "root": "D:/Formacion_Academica/Posgrado_UPC/Projects/UPC_FaceID_CL",
+    "host": "DESKTOP-V83OJI5",
+    "username": "Mario Mesas",
+    "executable": "D:\\Formacion_Academica\\Posgrado_UPC\\Projects\\UPC_FaceID_CL\\env\\python.exe"
+}

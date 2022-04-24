@@ -85,7 +85,7 @@ class CustomDataset_Testing(Dataset):
     if self.list_files==[]:
       self.list_files = sorted(glob.glob(path+'/*.bmp',recursive=True))
     self.transform = transform
-    self.labels = [(x.split('\\')[-1])[0:4] for x in self.list_files]
+    self.labels = [(x.split(os.sep)[-1])[0:4] for x in self.list_files]
 
   def __len__(self):
     return len(self.list_files)

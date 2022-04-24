@@ -148,7 +148,7 @@ def accuracy(latents,modelq,list_files_test,topk,nombres,method):
     img = cv2.imread(list_files_test[i])
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     nombre_groundtruth = list_files_test[i]
-    nombre_groundtruth=nombre_groundtruth.split('\\')[-2][-2:]
+    nombre_groundtruth=nombre_groundtruth.split(os.sep)[-2][-2:]
     res = transform(img).to(device)
     tensor_sample = res.unsqueeze(0)
     latent_sample = modelq(tensor_sample)
@@ -294,7 +294,7 @@ def silhouette(X):
         fontsize=14,
         fontweight="bold",
     )
-    plt.savefig('./src/resources/Images/Silhouette_Analysis')
+    plt.savefig('../resources/Images/Silhouette_Analysis')
     plt.show()
 
 
@@ -329,7 +329,7 @@ def test_supervised_model(network_contrastive,Linear_model,config_fixed,K):
         Classes_Map[Classes_List[i]] = i
     test_names = sorted(glob.glob(config_fixed["image_path_test"]+'/*/*.bmp',recursive=True))
     names_test = random.sample(test_names, len(test_names))
-    labels_test = [(x.split('\\')[-1])[0:4] for x in names_test]
+    labels_test = [(x.split(os.sep)[-1])[0:4] for x in names_test]
     transform = transforms.Compose([transforms.ToPILImage(), transforms.Resize((160,160)), transforms.ToTensor()])
     dataset_test = CustomDataset_supervised_Testing(names_test,labels_test,transform)
     dataloader_test = DataLoader(dataset_test,batch_size=16,shuffle=False)
