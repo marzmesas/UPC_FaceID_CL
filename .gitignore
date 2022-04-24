@@ -133,6 +133,6 @@ dmypy.json
 #Logs and other results
 ./src/python/logs
 ./src/python/app/logs
-./src/resources/checkpoints/*
-./src/resources/Images/*
-./src/python/wandb/*
+./src/resources/checkpoints
+./src/resources/Images
+./src/python/wandb
