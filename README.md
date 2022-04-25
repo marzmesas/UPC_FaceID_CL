@@ -94,7 +94,7 @@ To differentiate between positive and negative pairs, two encoders are implement
 <a name="loss_function"></a>
 ### Loss function - InfoNCE
 
-The objective is for queries to be cloose to all their positive samples and far from the negative ones. To measure this, we use the Information Noise Contrastive Estimation(**InfoCNE**) loss function. This function is basically a Cross-Entropy loss calculated through the product of a query and its key divided by the sum of all the products of the same query with all the differenty keys.
+The objective is for queries to be close to all their positive samples and far from the negative ones. To measure this, we use the Information Noise Contrastive Estimation(**InfoCNE**) loss function. This function is basically a Cross-Entropy loss calculated through the product of a query and its key divided by the sum of all the products of the same query with all the differenty keys.
 
 ![image](./ReadMe_Resources/FormulaLoss.png)
 
